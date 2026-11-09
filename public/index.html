@@ -50,6 +50,17 @@ th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
 .note{color:var(--dim);font-size:13px;margin-top:10px}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;margin:3px 3px 0 0;font-size:12.5px;color:var(--dim)}
+.modal{position:fixed;inset:0;background:rgba(5,8,14,.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modalcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:660px;width:100%;max-height:82vh;overflow:auto}
+.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:12px}
+.chip{border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 4px;cursor:pointer;text-align:center;color:#fff}
+.chip .ab{font-weight:800;font-size:15px;display:block}
+.chip .nm{font-size:10.5px;opacity:.85;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.all{background:var(--card2);color:var(--dim)}
+.chip.sel{outline:2px solid var(--green);outline-offset:2px}
+.chip:hover{filter:brightness(1.25)}
+.myteam{color:#ffd75e;font-size:9.5px;font-weight:700;letter-spacing:.5px;display:block;margin-top:2px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;border:1px solid rgba(255,255,255,.3)}
 a{color:var(--blue)}
 .tabs-mini{display:flex;gap:6px;margin-bottom:10px}
 .tabs-mini button{font-size:12px}
@@ -72,7 +83,7 @@ a{color:var(--blue)}
 <!-- DAILY -->
 <div id="tab-daily">
   <div class="row" style="margin-bottom:10px">
-    <select id="teamSel" onchange="teamChanged()"><option value="">All teams (league-wide)</option></select>
+    <button class="ghost" id="teamBtn" onclick="togglePicker(true)">🏈 <span class="dot" id="teamDot" style="display:none"></span> <span id="teamBtnLabel">…</span> ▾</button>
   </div>
   <div class="tabs-mini">
     <button class="ghost on" data-mode="tp">Team + Position</button>
@@ -135,10 +146,23 @@ a{color:var(--blue)}
     <div id="jevStatus" class="note"></div>
   </div>
 </div>
+<!-- picker modal -->
+<div id="picker" class="modal hidden" onclick="if(event.target===this)togglePicker(false)">
+  <div class="modalcard">
+    <h2>Pick your team</h2>
+    <div class="teamgrid" id="teamgrid"></div>
+  </div>
+</div>
 </div>
 
 <script>
 let daily = null, curMode = 'tp', today = new Date().toISOString().slice(0,10);
+let ALL_TEAMS = null;
+// no saved choice -> default to my team: Bears
+let curTeam = localStorage.getItem('db_team') !== null ? localStorage.getItem('db_team') : 'CHI';
+localStorage.setItem('db_team', curTeam);
+const MY_TEAM = 'CHI';
+const TEAM_COLORS = {ARI:['#97233F'],ATL:['#A71930'],BAL:['#241773'],BUF:['#00338D'],CAR:['#0085CA'],CHI:['#0B162A','#C83803'],CIN:['#FB4F14'],CLE:['#311D00','#FF3C00'],DAL:['#041E42'],DEN:['#FB4F14'],DET:['#0076B6'],GB:['#203731','#FFB612'],HOU:['#03202F'],IND:['#002C5F'],JAX:['#006778'],KC:['#E31837'],LAC:['#0080C6','#FFC20E'],LAR:['#003594','#FFA300'],LV:['#000000'],MIA:['#008E97'],MIN:['#4F2683','#FFC62F'],NE:['#002244'],NO:['#D3BC8D'],NYG:['#0B2265'],NYJ:['#125740'],PHI:['#004C54'],PIT:['#FFB612'],SEA:['#002244','#69B850'],SF:['#AA0000'],TB:['#D50A0A'],TEN:['#0C2340','#4B92DB'],WSH:['#5A1414']};
 const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
 const MODE_HINT = {tp:'Any player who played that position for that team, 2002–present. Rarer = better.', tn:'Anyone who wore that number for that team. Rarer = better.', mt:'Of the listed stints, pick the team with the FEWEST seasons.'};
 
@@ -155,27 +179,47 @@ document.querySelectorAll('.tabs-mini button').forEach(b=>b.onclick=()=>{
 document.getElementById('answer').addEventListener('keydown',e=>{if(e.key==='Enter')submitAnswer()});
 
 async function loadDaily(){
-  const team = document.getElementById('teamSel').value || localStorage.getItem('db_team') || '';
-  const r = await fetch('/api/daily?date='+today+'&team='+encodeURIComponent(team)).then(r=>r.json());
+  const r = await fetch('/api/daily?date='+today+'&team='+encodeURIComponent(curTeam)).then(r=>r.json());
   daily = r.questions; document.getElementById('cov').textContent = r.coverage;
-  // populate team selector once
-  const sel = document.getElementById('teamSel');
-  if (sel.options.length === 1) {
-    Object.entries(r.teams).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([code,nm])=>{
-      const o=document.createElement('option'); o.value=code; o.textContent=nm; sel.appendChild(o);
-    });
-    sel.value = r.team || '';
-    document.getElementById('teamSelLabel')?.remove();
-  }
+  ALL_TEAMS = r.teams;
+  updateTeamButton(r);
   const edition = r.team ? `${r.teams[r.team]} Edition` : 'League-wide';
   document.getElementById('edition').textContent = edition;
   document.getElementById('counts').textContent = `${r.counts.tp} position · ${r.counts.tn} number · ${r.counts.mt} multi-team questions available`;
   showMode();
 }
-function teamChanged(){
-  localStorage.setItem('db_team', document.getElementById('teamSel').value);
+function updateTeamButton(r){
+  const dot = document.getElementById('teamDot'), lbl = document.getElementById('teamBtnLabel');
+  if (curTeam && r.teams[curTeam]) {
+    dot.style.display='inline-block';
+    dot.style.background = (TEAM_COLORS[curTeam]||['#444'])[0];
+    lbl.textContent = r.teams[curTeam] + (curTeam===MY_TEAM ? ' ★' : '');
+  } else { dot.style.display='none'; lbl.textContent='All teams'; }
+}
+function togglePicker(show){ document.getElementById('picker').classList.toggle('hidden', !show); if(show) buildTeamGrid(); }
+function buildTeamGrid(){
+  const g = document.getElementById('teamgrid');
+  const mk = (code, nm, bg, color) => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (code===curTeam?' sel':'') + (code===''?' all':'');
+    if (bg) { b.style.background = bg; b.style.color = color || '#fff'; }
+    b.innerHTML = `<span class="ab">${code||'ALL'}</span><span class="nm">${code?esc(nm):'League-wide'}</span>` + (code===MY_TEAM?'<span class="myteam">★ MY TEAM</span>':'');
+    b.onclick = () => selectTeam(code);
+    return b;
+  };
+  g.innerHTML = '';
+  g.appendChild(mk('', '', null));
+  Object.entries(ALL_TEAMS).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([code,nm])=>{
+    const c = TEAM_COLORS[code] || ['#3a4358'];
+    g.appendChild(mk(code, nm, c[0], ['NO','PIT'].includes(code) ? '#0b162a' : '#fff'));
+  });
+}
+function selectTeam(code){
+  curTeam = code; localStorage.setItem('db_team', code);
+  togglePicker(false);
   loadDaily(); loadFeas();
 }
+function teamChanged(){ loadDaily(); loadFeas(); }
 function showMode(){
   const q = daily[curMode];
   document.getElementById('modeLabel').textContent = MODE_LABEL[curMode];
@@ -244,8 +288,7 @@ async function runBench(){
 
 // feas
 async function loadFeas(){
-  const team=document.getElementById('teamSel').value || localStorage.getItem('db_team') || '';
-  const r=await fetch('/api/feasibility'+(team?'?team='+encodeURIComponent(team):'')).then(r=>r.json());
+  const r=await fetch('/api/feasibility'+(curTeam?'?team='+encodeURIComponent(curTeam):'')).then(r=>r.json());
   const scope = r.team ? `${(r.teams||{})[r.team] || r.team} only` : 'league-wide';
   document.getElementById('feasOut').innerHTML = `
     <div class="prompt" style="margin-bottom:10px">Scope: ${esc(scope)}</div>
