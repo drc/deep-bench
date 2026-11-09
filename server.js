@@ -412,10 +412,14 @@ const server = http.createServer(async (req, res) => {
       }
       return send(404, { error: 'not found' });
     }
-    // static
+    // static — HTML must revalidate (fixes stale-cache bugs on iOS), dataset can cache hard
     let fp = path.join(ROOT, 'public', p === '/' ? 'index.html' : p.replace(/\.\./g, ''));
     if (!fs.existsSync(fp) || fs.statSync(fp).isDirectory()) fp = path.join(ROOT, 'public', 'index.html');
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(fp)] || 'application/octet-stream' });
+    const ext = path.extname(fp);
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': ext === '.json' ? 'public, max-age=86400' : 'no-cache',
+    });
     res.end(fs.readFileSync(fp));
   } catch (e) {
     try { send(500, { error: e.message }); } catch {}
