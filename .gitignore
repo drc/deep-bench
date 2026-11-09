@@ -6,7 +6,12 @@ data/jev-cache.json
 
 # secrets — never commit
 data/.jevkey
+.dev.vars
 
 # runtime
 server.pid
 server.log
+
+# node
+node_modules/
+.wrangler/

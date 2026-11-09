@@ -1,0 +1,20 @@
+// wrangler config — Deep Bench Cloudflare Worker
+// See docs/deploy.md for first-time setup (D1 creation + secrets).
+{
+  "name": "deep-bench",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-11-01",
+  // index.html imported as a text module and served with @@ENV@@ => production
+  "rules": [
+    { "type": "Text", "globs": ["**/*.html"], "fallthrough": true }
+  ],
+  // fill database_id after `npx wrangler d1 create deep-bench-db` (scripts/cf-setup.sh does this)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "deep-bench-db",
+      "database_id": "REPLACE_ME"
+    }
+  ],
+  "observability": { "enabled": true }
+}

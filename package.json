@@ -1,0 +1,17 @@
+{
+  "name": "deep-bench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NFL rarity trivia — the Drive. Node demo + Cloudflare Worker deployment.",
+  "scripts": {
+    "serve": "node server.js",
+    "test": "node --test test/game.test.js",
+    "smoke": "bash scripts/smoke.sh",
+    "cf:dev": "wrangler dev",
+    "cf:db": "wrangler d1 migrations apply deep-bench-db --local",
+    "cf:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
+  }
+}

@@ -1,0 +1,4 @@
+# local dev secrets (wrangler dev reads this; NEVER commit real values)
+COOKIE_SECRET=dev-only-secret-change-me
+# optional — enables jev-router long-tail adjudication in local dev
+# OPENROUTER_API_KEY=sk-or-v1-...

@@ -78,14 +78,27 @@ committed, so cloning → serving requires zero data work.
 - Built dataset: **12,134 players**, 416 team+position groups, 3,053
   team+number groups, 6,385 multi-team players (~3.9 MB JSON)
 
+## Deploy your own on Cloudflare
+
+```bash
+git clone https://github.com/drc/deep-bench && cd deep-bench
+npm install && bash scripts/cf-setup.sh
+```
+
+Creates the D1 database, applies schema, prompts for secrets, deploys.
+Full guide: [docs/deploy.md](docs/deploy.md).
+
 ## Repo layout
 
 ```
 build_data.py       CSVs -> dataset.json (dedupe, positions, fame scores)
-server.js           zero-dep Node server: game engine, grading, jev calls
-public/index.html   the whole UI (vanilla JS)
-public/dataset.json committed prebuilt dataset
+server.js           zero-dep Node demo server (transport + state + jev key)
+lib/game.js         PURE game core — shared by the Node demo and the Worker
+src/worker.js       Cloudflare Worker (D1 identity, once-per-day, history)
+src/auth.js         HMAC-signed cookie identity (WebCrypto)
+migrations/         D1 schema
 scripts/smoke.sh    boots server, plays a full drive, asserts the API
+scripts/cf-setup.sh first-time Cloudflare setup + deploy
 mise.toml           task runner
 ```
 
