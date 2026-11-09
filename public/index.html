@@ -37,6 +37,8 @@ button.ghost:hover{color:var(--txt);border-color:var(--dim)}
 .badge.common{background:#3d2f14;color:var(--amber)}
 .badge.uncommon{background:#14283d;color:var(--blue)}
 .badge.rare{background:#25143d;color:var(--purple)}
+.badge.miss{background:#2b1616;color:var(--red)}
+.badge.made{background:#12281d;color:var(--green)}
 .tierrow{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px}
 .tierrow:last-child{border-bottom:0}
 .fame{color:var(--dim);font-size:12px}
@@ -50,6 +52,23 @@ th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
 .note{color:var(--dim);font-size:13px;margin-top:10px}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;margin:3px 3px 0 0;font-size:12.5px;color:var(--dim)}
+a{color:var(--blue)}
+.hidden{display:none}
+/* field */
+.field{position:relative;height:46px;border-radius:10px;overflow:hidden;border:1px solid var(--line);
+  background:repeating-linear-gradient(90deg,#123a26 0 10%,#153f2a 10% 20%)}
+.field .redzone{position:absolute;right:0;top:0;bottom:0;width:20%;background:rgba(245,107,107,.25);border-left:2px dashed rgba(245,107,107,.6)}
+.field .marker{position:absolute;top:3px;bottom:3px;width:4px;background:var(--txt);border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.6);transition:left .6s cubic-bezier(.2,.8,.2,1)}
+.fieldlabel{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:4px;letter-spacing:1px}
+.ballpos{font-size:15px;font-weight:700;margin:10px 0 2px}
+.logrow{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.logrow:last-child{border-bottom:0}
+.logrow .n{color:var(--dim);width:26px;flex-shrink:0}
+.logrow .g{margin-left:auto;font-weight:700;white-space:nowrap}
+.kickbtn{width:100%;padding:16px;font-size:18px;border-radius:12px;border:0;background:var(--amber);color:#2b1a05;font-weight:800;cursor:pointer;margin-top:10px}
+.kickbtn:hover{filter:brightness(1.1)}
+.tally{color:var(--dim);font-size:12.5px;margin-top:8px}
+/* picker */
 .modal{position:fixed;inset:0;background:rgba(5,8,14,.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modalcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:660px;width:100%;max-height:82vh;overflow:auto}
 .teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:12px}
@@ -61,53 +80,58 @@ th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .chip:hover{filter:brightness(1.25)}
 .myteam{color:#ffd75e;font-size:9.5px;font-weight:700;letter-spacing:.5px;display:block;margin-top:2px}
 .dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;border:1px solid rgba(255,255,255,.3)}
-a{color:var(--blue)}
-.tabs-mini{display:flex;gap:6px;margin-bottom:10px}
-.tabs-mini button{font-size:12px}
-.hidden{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
   <h1>Deep<span class="accent">Bench</span></h1>
-  <span class="sub">NFL rarity trivia demo · rare answers win · coverage <span id="cov"></span></span>
+  <span class="sub">NFL rarity trivia · drive for the field goal · coverage <span id="cov"></span></span>
 </header>
 <nav>
-  <button data-tab="daily" class="on">Daily Questions</button>
+  <button data-tab="drive" class="on">The Drive</button>
   <button data-tab="bench">Lookup Bench</button>
   <button data-tab="feas">Feasibility</button>
   <button data-tab="jev">jev Settings</button>
 </nav>
 
-<!-- DAILY -->
-<div id="tab-daily">
+<!-- DRIVE -->
+<div id="tab-drive">
   <div class="row" style="margin-bottom:10px">
     <button class="ghost" id="teamBtn" onclick="togglePicker(true)">🏈 <span class="dot" id="teamDot" style="display:none"></span> <span id="teamBtnLabel">…</span> ▾</button>
   </div>
-  <div class="tabs-mini">
-    <button class="ghost on" data-mode="tp">Team + Position</button>
-    <button class="ghost" data-mode="tn">Team + Number</button>
-    <button class="ghost" data-mode="mt">Fewest Teams</button>
-  </div>
   <div class="card">
-    <h2>Question of the day — <span id="edition">League-wide</span> · <span id="modeLabel"></span></h2>
-    <div class="sub" id="counts" style="margin-bottom:10px"></div>
-    <div class="prompt" id="prompt">…</div>
-    <div class="hint" id="hint"></div>
-    <div class="row">
-      <input type="text" id="answer" placeholder="Type an answer…" autocomplete="off">
-      <button class="go" onclick="submitAnswer()">Submit</button>
+    <h2><span id="edition">Drive</span> — play 1 of 5</h2>
+    <div class="field"><div class="redzone"></div><div class="marker" id="marker" style="left:25%"></div></div>
+    <div class="fieldlabel"><span>OWN GOAL</span><span>50</span><span>RED ZONE</span><span>OPP GOAL</span></div>
+    <div class="ballpos" id="ballText">Your ball, own 25.</div>
+    <div id="qArea">
+      <div class="prompt" id="prompt">…</div>
+      <div class="hint" id="hint"></div>
+      <div class="row">
+        <input type="text" id="answer" placeholder="Type an answer…" autocomplete="off">
+        <button class="go" onclick="submitAnswer()">Submit</button>
+      </div>
     </div>
     <div class="verdict" id="verdict"></div>
-    <div class="note" id="tierPeek" style="display:none">
-      <button class="ghost" onclick="tierPeek()">🔍 Peek: how would jev tier this question's candidates?</button>
-      <div id="tierList" style="margin-top:10px"></div>
+    <div id="kickArea" class="hidden">
+      <button class="kickbtn" id="kickBtn" onclick="kick()">🦵 Kick it</button>
     </div>
+    <div id="driveLog" style="margin-top:12px"></div>
+    <div class="row" id="newDriveRow" style="display:none"><button class="go" onclick="startDrive()">🏈 New drive</button></div>
+    <div class="tally" id="tally"></div>
   </div>
   <div class="card">
-    <h2>How scoring works</h2>
-    <div class="sub">Everyone answers the same question. Rarer answers win: <b class="badge common">common</b> = 10 pts · <b class="badge uncommon">uncommon</b> = 50 pts · <b class="badge rare">rare</b> = 100 pts. Invalid answers score 0. The live "picked" % shows what other players on this tailnet chose.</div>
+    <h2>How a drive works</h2>
+    <div class="sub">Five questions: two team+position, two team+number, one multi-team. Each answer is a play — rarer answers gain more yards: <b class="badge rare">rare</b> +13 · <b class="badge uncommon">uncommon</b> +10 · <b class="badge common">common</b> +6 · <b class="badge miss">miss</b> +0. Perfect play moves you ~65 yards, well inside the 20. Then you kick: the closer you got, the shorter the kick and the better your odds. Miss a couple and you're staring at a 55-yarder that probably won't make it.</div>
+  </div>
+</div>
+
+<!-- picker modal -->
+<div id="picker" class="modal hidden" onclick="if(event.target===this)togglePicker(false)">
+  <div class="modalcard">
+    <h2>Pick your team</h2>
+    <div class="teamgrid" id="teamgrid"></div>
   </div>
 </div>
 
@@ -137,57 +161,121 @@ a{color:var(--blue)}
 <div id="tab-jev" class="hidden">
   <div class="card">
     <h2>jev-router decisioning</h2>
-    <div class="sub" style="margin-bottom:12px">The demo grades from the roster database instantly. <b>typesafe/jev-router</b> (OpenRouter) is the decisioning engine on top: it adjudicates answers outside the dataset (pre-2002 players, obscure stints) and can tier candidate answers by fan-popularity. Paste an OpenRouter key to light it up — it's stored locally on this server only.</div>
-    <div class="row">
-      <input type="password" id="jevKey" placeholder="sk-or-v1-…">
-      <button class="go" onclick="saveKey()">Save</button>
-      <button class="ghost" onclick="testKey()">Test</button>
-    </div>
+    <div class="sub" style="margin-bottom:12px">The roster database grades 2002+ answers instantly. <b>typesafe/jev-router</b> adjudicates everything else — pre-2002 deep cuts, odd stints — and assigns the rarity tier.</div>
     <div id="jevStatus" class="note"></div>
-  </div>
-</div>
-<!-- picker modal -->
-<div id="picker" class="modal hidden" onclick="if(event.target===this)togglePicker(false)">
-  <div class="modalcard">
-    <h2>Pick your team</h2>
-    <div class="teamgrid" id="teamgrid"></div>
   </div>
 </div>
 </div>
 
 <script>
-let daily = null, curMode = 'tp', today = new Date().toISOString().slice(0,10);
-let ALL_TEAMS = null;
+const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
+const MODE_HINT = {tp:'Any player who played that position for that team, any era. Rarer = more yards.', tn:'Anyone who wore that number for that team, any era. Rarer = more yards.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
+const YARDAGE = {rare:13, uncommon:10, common:6};
+
+let ALL_TEAMS = null, game = null;
+let curMode = null;
+let today = new Date().toISOString().slice(0,10);
 // no saved choice -> default to my team: Bears
 let curTeam = localStorage.getItem('db_team') !== null ? localStorage.getItem('db_team') : 'CHI';
 localStorage.setItem('db_team', curTeam);
 const MY_TEAM = 'CHI';
 const TEAM_COLORS = {ARI:['#97233F'],ATL:['#A71930'],BAL:['#241773'],BUF:['#00338D'],CAR:['#0085CA'],CHI:['#0B162A','#C83803'],CIN:['#FB4F14'],CLE:['#311D00','#FF3C00'],DAL:['#041E42'],DEN:['#FB4F14'],DET:['#0076B6'],GB:['#203731','#FFB612'],HOU:['#03202F'],IND:['#002C5F'],JAX:['#006778'],KC:['#E31837'],LAC:['#0080C6','#FFC20E'],LAR:['#003594','#FFA300'],LV:['#000000'],MIA:['#008E97'],MIN:['#4F2683','#FFC62F'],NE:['#002244'],NO:['#D3BC8D'],NYG:['#0B2265'],NYJ:['#125740'],PHI:['#004C54'],PIT:['#FFB612'],SEA:['#002244','#69B850'],SF:['#AA0000'],TB:['#D50A0A'],TEN:['#0C2340','#4B92DB'],WSH:['#5A1414']};
-const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
-const MODE_HINT = {tp:'Any player who played that position for that team, 2002–present. Rarer = better.', tn:'Anyone who wore that number for that team. Rarer = better.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
-  ['daily','bench','feas','jev'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
-});
-document.querySelectorAll('.tabs-mini button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs-mini button').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');
-  curMode=b.dataset.mode; showMode();
+  ['drive','bench','feas','jev'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
 });
 document.getElementById('answer').addEventListener('keydown',e=>{if(e.key==='Enter')submitAnswer()});
 
-async function loadDaily(){
-  const r = await fetch('/api/daily?date='+today+'&team='+encodeURIComponent(curTeam)).then(r=>r.json());
-  daily = r.questions; document.getElementById('cov').textContent = r.coverage;
-  ALL_TEAMS = r.teams;
-  updateTeamButton(r);
-  const edition = r.team ? `${r.teams[r.team]} Edition` : 'League-wide';
-  document.getElementById('edition').textContent = edition;
-  document.getElementById('counts').textContent = `${r.counts.tp} position · ${r.counts.tn} number · ${r.counts.mt} multi-team questions available`;
-  showMode();
+/* ---------- drive ---------- */
+async function startDrive(){
+  document.getElementById('verdict').className='verdict';document.getElementById('verdict').style.display='none';
+  document.getElementById('kickArea').classList.add('hidden');
+  document.getElementById('newDriveRow').style.display='none';
+  document.getElementById('driveLog').innerHTML='';
+  document.getElementById('qArea').style.display='block';
+  document.getElementById('answer').value='';
+  game = await fetch('/api/game/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team:curTeam})}).then(r=>r.json());
+  updateTeamButton({teams:ALL_TEAMS});
+  renderDrive();
 }
+function renderDrive(){
+  document.getElementById('edition').textContent = game.team ? `${ALL_TEAMS[game.team]} Drive` : 'League-wide Drive';
+  document.getElementById('marker').style.left = game.ballAt + '%';
+  const inRed = game.ballAt >= 80;
+  const label = game.ballAt > 50 ? `opponents' ${100-game.ballAt}` : game.ballAt === 50 ? 'the 50' : `your own ${game.ballAt}`;
+  document.getElementById('ballText').textContent = `Your ball at ${label}. ${game.yards} yards gained on the drive.`;
+  document.getElementById('ballText').style.color = inRed ? 'var(--red)' : 'var(--txt)';
+  if (game.status === 'active') {
+    document.getElementById('qArea').style.display='block';
+    const q = game.question;
+    document.getElementById('prompt').textContent = q.prompt;
+    document.getElementById('hint').textContent = MODE_HINT[q.mode];
+    document.getElementById('answer').value='';
+    document.getElementById('answer').focus();
+  } else {
+    document.getElementById('qArea').style.display='none';
+  }
+  renderLog();
+  if (game.status === 'kick') {
+    document.getElementById('kickBtn').textContent = `🦵 Attempt the field goal (${game.fg.dist} yards · ${game.fg.prob}% odds)`;
+    document.getElementById('kickArea').classList.remove('hidden');
+  }
+  if (game.status === 'done') document.getElementById('newDriveRow').style.display='flex';
+  renderTally();
+}
+function renderLog(){
+  document.getElementById('driveLog').innerHTML = (game.log||[]).map(l=>{
+    const badge = l.mode==='kick' ? `<span class="badge ${l.tier}">${l.tier.toUpperCase()}</span>` : `<span class="badge ${l.tier}">${l.tier}</span>`;
+    return `<div class="logrow"><span class="n">${l.n}</span><span>${esc(l.answer)}</span> ${badge}<span class="g" style="color:${l.gained>9?'var(--green)':l.gained>0?'var(--amber)':'var(--red)'}">${l.mode==='kick'?'':'+ '+l.gained+' yds'}</span></div>` + (l.note?`<div class="note" style="margin:0 0 6px 36px">${esc(l.note)}</div>`:'');
+  }).join('');
+}
+async function submitAnswer(){
+  const v = document.getElementById('answer').value.trim();
+  if(!v || game.status!=='active') return;
+  const el = document.getElementById('verdict');
+  el.style.display='block'; el.className='verdict'; el.innerHTML='<div class="big">⏳ checking…</div>';
+  const r = await fetch('/api/game/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:game.gameId,answer:v})}).then(r=>r.json());
+  if(r.error){ el.className='verdict bad'; el.innerHTML=`<div class="big">${esc(r.error)}</div>`; return; }
+  const v2 = r.verdict;
+  if (v2.status==='ok'){
+    el.className='verdict ok';
+    el.innerHTML=`<div class="big">✅ ${esc(v2.answer)}<span class="badge ${v2.tier}">${v2.tier}</span></div>
+      <div style="color:var(--dim);margin-top:4px">+${v2.gained} yards${v2.source==='jev'?' · <span style="color:var(--green)">adjudicated by jev-router</span>':''}</div>
+      ${v2.note?`<div style="color:var(--dim);margin-top:4px;font-size:13px">${esc(v2.note)}</div>`:''}`;
+  } else {
+    el.className='verdict bad';
+    el.innerHTML=`<div class="big">${v2.source==='jev'?'❌ Rejected by jev-router':'🤷 Not in the roster database'}</div>
+      <div style="color:var(--dim);margin-top:4px">${esc(v2.note||'No gain.')}</div>`;
+  }
+  if (r.fg) { game.fg = r.fg; }
+  game = {...game, ...r.view};
+  if (game.status==='kick') el.innerHTML += `<div style="margin-top:8px;font-weight:700">🏟️ Drive over — you're at the ${game.ballAt>50?(100-game.ballAt)+'-yard line of your opponent':game.ballAt+' of your own'}. FG: ${r.fg.dist} yds, ${r.fg.prob}%.</div>`;
+  renderDrive();
+}
+async function kick(){
+  const r = await fetch('/api/game/kick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:game.gameId})}).then(r=>r.json());
+  if(r.error) return;
+  game = {...game, ...r.view};
+  const el = document.getElementById('verdict');
+  el.style.display='block';
+  el.className = r.kick.made ? 'verdict ok' : 'verdict bad';
+  el.innerHTML = r.kick.made
+    ? `<div class="big" style="color:var(--green)">🦵🎯 IT'S GOOD! ${r.kick.dist}-yard field goal — +3 points</div><div style="color:var(--dim);margin-top:4px">${r.kick.prob}% odds came through.</div>`
+    : `<div class="big" style="color:var(--red)">🦵❌ NO GOOD from ${r.kick.dist}.</div><div style="color:var(--dim);margin-top:4px">Only ${r.kick.prob}% odds — deeper answers next drive.</div>`;
+  document.getElementById('kickArea').classList.add('hidden');
+  renderDrive();
+  const t = JSON.parse(localStorage.getItem('db_tally')||'{"drives":0,"makes":0,"pts":0}');
+  t.drives++; if(r.kick.made){t.makes++;t.pts+=3;}
+  localStorage.setItem('db_tally', JSON.stringify(t)); renderTally();
+}
+function renderTally(){
+  const t = JSON.parse(localStorage.getItem('db_tally')||'{"drives":0,"makes":0,"pts":0}');
+  document.getElementById('tally').textContent = t.drives ? `Session: ${t.makes}/${t.drives} field goals made · ${t.pts} pts` : '';
+}
+
+/* ---------- team picker ---------- */
 function updateTeamButton(r){
   const dot = document.getElementById('teamDot'), lbl = document.getElementById('teamBtnLabel');
   if (curTeam && r.teams[curTeam]) {
@@ -217,48 +305,10 @@ function buildTeamGrid(){
 function selectTeam(code){
   curTeam = code; localStorage.setItem('db_team', code);
   togglePicker(false);
-  loadDaily(); loadFeas();
-}
-function teamChanged(){ loadDaily(); loadFeas(); }
-function showMode(){
-  const q = daily[curMode];
-  document.getElementById('modeLabel').textContent = MODE_LABEL[curMode];
-  document.getElementById('prompt').textContent = q.prompt;
-  document.getElementById('hint').textContent = MODE_HINT[curMode];
-  document.getElementById('verdict').className='verdict'; document.getElementById('verdict').style.display='none';
-  document.getElementById('tierPeek').style.display='none';
-  document.getElementById('tierList').innerHTML='';
-  document.getElementById('answer').value='';
-}
-async function submitAnswer(){
-  const v = document.getElementById('answer').value.trim();
-  if(!v) return;
-  const el = document.getElementById('verdict');
-  el.style.display='block';
-  el.className='verdict'; el.innerHTML='<div class="big">⏳ checking…</div>';
-  const r = await fetch('/api/grade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:curMode,qid:daily[curMode].id,answer:v,date:today})}).then(r=>r.json());
-  if(r.status==='ok'){
-    el.className='verdict ok';
-    el.innerHTML=`<div class="big">✅ ${esc(r.answer)}<span class="badge ${r.tier}">${r.tier}</span></div>
-      <div style="color:var(--dim);margin-top:4px">+${r.points} points · picked by ${r.pickedPct==null?'?':r.pickedPct}% of ${r.totalAnswers||'—'} answers so far${r.source==='jev'?' · <span style="color:var(--green)">adjudicated by jev-router</span>':''}</div>
-      ${r.note?`<div style="color:var(--dim);margin-top:4px;font-size:13px">${esc(r.note)}</div>`:''}`;
-    document.getElementById('tierPeek').style.display = curMode==='mt' ? 'none' : 'block';
-  } else {
-    el.className='verdict bad';
-    el.innerHTML=`<div class="big">${r.status==='wrong'?'❌ Rejected by jev-router':'🤷 Not in the roster database'}</div>
-      <div style="color:var(--dim);margin-top:4px">${esc(r.note||'Try another answer.')}</div>`;
-    if(r.status==='not_found') document.getElementById('tierPeek').style.display='block';
-  }
-}
-async function tierPeek(){
-  const out = document.getElementById('tierList');
-  out.innerHTML='<span class="sub">tiering…</span>';
-  const r = await fetch('/api/jevtier',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:curMode,qid:daily[curMode].id})}).then(r=>r.json());
-  out.innerHTML = `<div class="sub" style="margin-bottom:6px">source: ${r.source}${r.error?' ('+esc(r.error)+')':''}</div>` +
-    (r.tiers||[]).map(t=>`<div class="tierrow"><span>${esc(t.name)}</span><span><span class="fame">fame ${t.fame}</span> <span class="badge ${t.tier}">${t.tier}</span></span></div>`).join('');
+  startDrive(); loadFeas();
 }
 
-// bench
+/* ---------- bench ---------- */
 function benchTypeChanged(){renderBenchInputs()}
 function renderBenchInputs(){
   const t=document.getElementById('benchType').value, w=document.getElementById('benchInputs');
@@ -286,7 +336,7 @@ async function runBench(){
     r.tiers.map(x=>`<div class="tierrow"><span>${esc(x.name)}</span><span><span class="fame">fame ${x.fame}</span> <span class="badge ${x.tier}">${x.tier}</span></span></div>`).join('');
 }
 
-// feas
+/* ---------- feas ---------- */
 async function loadFeas(){
   const r=await fetch('/api/feasibility'+(curTeam?'?team='+encodeURIComponent(curTeam):'')).then(r=>r.json());
   const scope = r.team ? `${(r.teams||{})[r.team] || r.team} only` : 'league-wide';
@@ -307,21 +357,22 @@ async function loadFeas(){
     <div class="note">Question quality depends on the fame proxy (career seasons + draft capital). jev-router tiering (see Settings) is the real popularity signal — this heuristic just bootstraps.</div>`;
 }
 
-// jev
+/* ---------- jev ---------- */
 async function refreshJev(){
   const s=await fetch('/api/jevstatus').then(r=>r.json());
   document.getElementById('jevStatus').innerHTML = s.configured
     ? (s.live?`✅ live · <span class="mono">${esc(s.model)}</span>`:`⚠️ key set but test failed: ${esc(s.error||'?')}`)
     : `⚪ no key set — heuristic tiering only. <span class="mono">${esc(s.model)}</span> will handle long-tail answers once configured.`;
 }
-async function saveKey(){
-  await fetch('/api/jevkey',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:document.getElementById('jevKey').value})});
-  refreshJev();
-}
-async function testKey(){ refreshJev(); }
 
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-loadDaily(); loadFeas(); refreshJev();
+(async () => {
+  // fetch teams list once, then start the drive
+  const r = await fetch('/api/feasibility').then(x=>x.json());
+  ALL_TEAMS = r.teams; document.getElementById('cov').textContent = r.coverage;
+  updateTeamButton({teams: ALL_TEAMS});
+  startDrive(); loadFeas(); refreshJev();
+})();
 </script>
 </body>
 </html>

@@ -187,6 +187,83 @@ function matchMT(q, answer) {
   return { name: D.teams[t.team], tier: correct ? (t.n === 1 ? 'rare' : 'uncommon') : 'common', tenure: t.n, correct };
 }
 
+// ---------- drive game (5 questions -> field goal) ----------
+const GAMES = new Map();
+const YARDAGE = { rare: 13, uncommon: 10, common: 6 };
+const DRIVE_START = 25; // own 25
+const KICK_ODDS = d => d <= 29 ? 0.96 : d <= 34 ? 0.92 : d <= 39 ? 0.86 : d <= 44 ? 0.78 : d <= 49 ? 0.70 : d <= 54 ? 0.55 : d <= 59 ? 0.40 : 0.12;
+
+function drawQuestion(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+function newGame(team) {
+  const f = arr => {
+    const filtered = team ? arr.filter(q => q.team === team || (q.tenures && q.tenures.some(t => t.team === team))) : arr;
+    return filtered.length ? filtered : arr;
+  };
+  const qs = [
+    drawQuestion(f(pool.tp)), drawQuestion(f(pool.tp)),
+    drawQuestion(f(pool.tn)), drawQuestion(f(pool.tn)),
+    drawQuestion(f(pool.mt)),
+  ];
+  qs.sort(() => Math.random() - 0.5);
+  const g = { id: Math.random().toString(36).slice(2, 10), team, questions: qs, idx: 0, yards: 0, log: [], status: 'active' };
+  GAMES.set(g.id, g);
+  return g;
+}
+
+function gameView(g) {
+  return {
+    gameId: g.id, team: g.team, idx: g.idx, total: g.questions.length,
+    status: g.status, yards: g.yards,
+    ballAt: Math.min(99, DRIVE_START + g.yards),
+    log: g.log,
+    question: g.status === 'active' ? { id: g.questions[g.idx].id, mode: g.questions[g.idx].mode, prompt: qPrompt(g.questions[g.idx]) } : null,
+  };
+}
+
+async function gameAnswer(g, answer) {
+  if (g.status !== 'active') return { error: 'drive not active' };
+  const q = g.questions[g.idx];
+  const r = await gameAdjudicatedAnswer(g, answer);
+  let gained = 0, tier = null, shown = answer;
+  if (r.status === 'ok') {
+    tier = r.tier; gained = YARDAGE[tier]; shown = r.answer;
+    g.yards += gained;
+  }
+  g.log.push({ n: g.idx + 1, mode: q.mode, answer: shown, tier: tier || 'miss', gained, source: r.source || 'db', note: r.note || null });
+  g.idx++;
+  if (g.idx >= g.questions.length) {
+    g.status = 'kick';
+    const dist = (100 - (DRIVE_START + g.yards)) + 17;
+    return { view: gameView(g), verdict: { tier: tier || 'miss', gained, note: r.note || null, answer: shown, status: r.status }, fg: { dist, prob: Math.round(KICK_ODDS(dist) * 100) } };
+  }
+  return { view: gameView(g), verdict: { tier: tier || 'miss', gained, note: r.note || null, answer: shown, status: r.status } };
+}
+
+function gameKick(g) {
+  if (g.status !== 'kick') return { error: 'not in kick phase' };
+  const dist = (100 - (DRIVE_START + g.yards)) + 17;
+  const prob = KICK_ODDS(dist);
+  const made = Math.random() < prob;
+  g.status = 'done';
+  g.log.push({ n: 'K', mode: 'kick', answer: `${dist}-yard field goal`, tier: made ? 'made' : 'missed', gained: 0, made });
+  return { view: gameView(g), kick: { dist, prob: Math.round(prob * 100), made, points: made ? 3 : 0 } };
+}
+
+async function gameAdjudicatedAnswer(g, answer) {
+  // like /api/grade's long-tail path but inside a game
+  const q = g.questions[g.idx];
+  const direct = grade(q, answer, null, new Date().toISOString().slice(0, 10));
+  if (direct.status === 'ok' || !jevKey) return direct;
+  try {
+    const verdict = await jevAdjudicate(q, answer);
+    if (verdict.valid) return { status: 'ok', answer, tier: verdict.tier, points: TIER_POINTS[verdict.tier], source: 'jev', note: verdict.note };
+    return { status: 'wrong', source: 'jev', note: verdict.note };
+  } catch (e) {
+    return { ...direct, note: direct.note + ' (jev unavailable: ' + e.message + ')' };
+  }
+}
+
 // ---------- http ----------
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
@@ -310,6 +387,22 @@ const server = http.createServer(async (req, res) => {
           const tiers = q.cands.map(c => ({ ...c, tier: (out.tiers && (out.tiers[c.name] || out.tiers[c.name.trim()])) || 'uncommon' }));
           return send(200, { source: 'jev', tiers });
         } catch (e) { return send(200, { source: 'heuristic', error: e.message, tiers: heuristic }); }
+      }
+      if (p === '/api/game/start') {
+        const g = newGame((body.team || '').toUpperCase() || null);
+        return send(200, gameView(g));
+      }
+      if (p === '/api/game/answer') {
+        const g = GAMES.get(body.gameId);
+        if (!g) return send(400, { error: 'no such game' });
+        const out = await gameAnswer(g, body.answer || '');
+        return send(200, out);
+      }
+      if (p === '/api/game/kick') {
+        const g = GAMES.get(body.gameId);
+        if (!g) return send(400, { error: 'no such game' });
+        const out = gameKick(g);
+        return send(200, out);
       }
       return send(404, { error: 'not found' });
     }

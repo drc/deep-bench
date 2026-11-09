@@ -6,6 +6,14 @@ Krillion/Farflung-style daily questions where **rare answers win**. Three questi
 2. **Team + Number → player** — "Name a player who wore #99 for the Bears."
 3. **Player → fewest-tenure team** — "Rivers played for the Chargers & Colts. Which did he spend FEWEST seasons with?"
 
+## The Drive (game flow)
+
+Five questions per drive: two team+position, two team+number, one multi-team.
+Each answer gains yardage by rarity: **rare +13, uncommon +10, common +6, miss +0**.
+Ball starts at own 25; perfect play (~65 yds) lands inside the opponent's 20.
+Then the field-goal attempt: distance = yards-to-goal + 17, with NFL-style make
+odds (27-yd ≈ 96%, 45-yd ≈ 70%, 55+ ≈ 40%, 65+ ≈ 12%). Made kick = 3 points.
+
 ## Data
 
 - Source: nflverse weekly rosters (`data/roster_weekly_*.csv`, 2002–2025, ~258 MB),
