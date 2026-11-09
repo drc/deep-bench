@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Deep Bench — NFL Rarity Trivia</title>
+<script>window.__ENV__='@@ENV@@';</script>
 <style>
 :root{
   --bg:#0b0e14;--card:#141926;--card2:#1b2233;--line:#26304a;--txt:#e8ecf5;--dim:#8b96ad;
@@ -93,9 +94,9 @@ a{color:var(--blue)}
 </header>
 <nav>
   <button data-tab="drive" class="on">The Drive</button>
-  <button data-tab="bench">Lookup Bench</button>
-  <button data-tab="feas">Feasibility</button>
-  <button data-tab="jev">jev Settings</button>
+  <button data-tab="bench" class="dev">Lookup Bench</button>
+  <button data-tab="feas" class="dev">Feasibility</button>
+  <button data-tab="jev" class="dev">jev Settings</button>
 </nav>
 
 <!-- DRIVE -->
@@ -173,6 +174,9 @@ a{color:var(--blue)}
 
 <script>
 const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
+const DEV = (window.__ENV__ || 'development') !== 'production';
+// dev-only tabs: hide in production, keep the Drive front and center
+document.querySelectorAll('nav button.dev').forEach(b => b.classList.toggle('hidden', !DEV));
 const MODE_HINT = {tp:'Any player who played that position for that team, any era. Rarer = more yards.', tn:'Anyone who wore that number for that team, any era. Rarer = more yards.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
 const YARDAGE = {deep:14, rare:12, uncommon:9, common:6};
 

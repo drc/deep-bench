@@ -416,11 +416,13 @@ const server = http.createServer(async (req, res) => {
     let fp = path.join(ROOT, 'public', p === '/' ? 'index.html' : p.replace(/\.\./g, ''));
     if (!fs.existsSync(fp) || fs.statSync(fp).isDirectory()) fp = path.join(ROOT, 'public', 'index.html');
     const ext = path.extname(fp);
+    let body = fs.readFileSync(fp);
+    if (ext === '.html') body = Buffer.from(fs.readFileSync(fp, 'utf8').replace('@@ENV@@', process.env.NODE_ENV || 'development'));
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.json' ? 'public, max-age=86400' : 'no-cache',
     });
-    res.end(fs.readFileSync(fp));
+    res.end(body);
   } catch (e) {
     try { send(500, { error: e.message }); } catch {}
   }

@@ -21,7 +21,12 @@ sources = ["build_data.py", "data/*.csv"]
 outputs = ["public/dataset.json"]
 
 [tasks.serve]
-description = "Run the demo on 127.0.0.1:4310"
+description = "Run the demo in dev mode (all tabs visible)"
+run = "node server.js"
+
+[tasks.prod]
+description = "Run in production mode (Drive tab only)"
+env = { NODE_ENV = "production" }
 run = "node server.js"
 
 [tasks.smoke]

@@ -60,7 +60,8 @@ Tasks are run with [mise](https://mise.jdx.dev) (`mise trust` once, then):
 ```bash
 mise run data     # optional: fetch raw CSVs (2002–2025, ~258 MB)
 mise run build    # rebuild dataset.json (prebuilt copy is committed)
-mise run serve    # demo on http://127.0.0.1:4310
+mise run serve    # dev mode: demo on http://127.0.0.1:4310, all tabs
+mise run prod     # production mode: Drive tab only (NODE_ENV=production)
 mise run smoke    # boot + API smoke test
 mise run tunnel   # expose on your tailnet
 ```
