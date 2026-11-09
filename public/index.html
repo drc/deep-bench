@@ -121,6 +121,7 @@ a{color:var(--blue)}
       <button class="kickbtn" id="kickBtn" onclick="kick()">🦵 Kick it</button>
     </div>
     <div id="driveLog" style="margin-top:12px"></div>
+    <div class="row" id="shareRow" style="display:none"><button class="go" id="shareBtn" onclick="shareDrive()">📱 Share your drive</button></div>
     <div class="row" id="newDriveRow" style="display:none"><button class="go" onclick="startDrive()">🏈 New drive</button></div>
     <div class="tally" id="tally"></div>
   </div>
@@ -196,6 +197,8 @@ async function startDrive(){
   document.getElementById('verdict').className='verdict';document.getElementById('verdict').style.display='none';
   document.getElementById('kickArea').classList.add('hidden');
   document.getElementById('newDriveRow').style.display='none';
+  document.getElementById('shareRow').style.display='none';
+  lastKick = null;
   document.getElementById('driveLog').innerHTML='';
   document.getElementById('qArea').style.display='block';
   document.getElementById('answer').value='';
@@ -260,6 +263,7 @@ async function submitAnswer(){
 async function kick(){
   const r = await fetch('/api/game/kick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:game.gameId})}).then(r=>r.json());
   if(r.error) return;
+  lastKick = r.kick;
   game = {...game, ...r.view};
   const el = document.getElementById('verdict');
   el.style.display='block';
@@ -268,10 +272,41 @@ async function kick(){
     ? `<div class="big" style="color:var(--green)">🦵🎯 IT'S GOOD! ${r.kick.dist}-yard field goal — +3 points</div><div style="color:var(--dim);margin-top:4px">${r.kick.prob}% odds came through.</div>`
     : `<div class="big" style="color:var(--red)">🦵❌ NO GOOD from ${r.kick.dist}.</div><div style="color:var(--dim);margin-top:4px">Only ${r.kick.prob}% odds — deeper answers next drive.</div>`;
   document.getElementById('kickArea').classList.add('hidden');
+  document.getElementById('shareRow').style.display='flex';
   renderDrive();
   const t = JSON.parse(localStorage.getItem('db_tally')||'{"drives":0,"makes":0,"pts":0}');
   t.drives++; if(r.kick.made){t.makes++;t.pts+=3;}
   localStorage.setItem('db_tally', JSON.stringify(t)); renderTally();
+}
+let lastKick = null;
+function driveSummary(){
+  const icon = {deep:'🟡', rare:'🟣', uncommon:'🔵', common:'🟠', miss:'🔴'};
+  const team = game.team && ALL_TEAMS ? ALL_TEAMS[game.team] : 'NFL';
+  const plays = (game.log||[]).filter(l=>l.mode!=='kick').map(l=>icon[l.tier]||'⚪').join('');
+  const k = lastKick || {};
+  const fg = k.dist ? `🦵 ${k.dist}-yd FG: ${k.made ? 'GOOD ✅ +3' : 'NO GOOD ❌'}` : '';
+  return `🏈 Deep Bench — ${team} Drive\n${plays}\n${fg}\n${game.yards} yards on the drive · ${k.made ? 3 : 0} pt${k.made?1:0}s\nBeat my drive 👉 ${location.origin}`;
+}
+async function shareDrive(){
+  const text = driveSummary();
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Deep Bench', text }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; /* fall through to copy */ }
+  }
+  try { await navigator.clipboard.writeText(text); setShareBtn('📋 Copied to clipboard!'); return; } catch {}
+  // legacy fallback — works on non-secure origins
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    setShareBtn(ok ? '📋 Copied to clipboard!' : '⚠️ Sharing unavailable here');
+  } catch { setShareBtn('⚠️ Sharing unavailable here'); }
+}
+function setShareBtn(msg){
+  const b = document.getElementById('shareBtn'); b.textContent = msg;
+  setTimeout(()=>{ b.textContent = '📱 Share your drive'; }, 2000);
 }
 function renderTally(){
   const t = JSON.parse(localStorage.getItem('db_tally')||'{"drives":0,"makes":0,"pts":0}');
