@@ -82,8 +82,15 @@ committed, so cloning → serving requires zero data work.
 
 ```bash
 git clone https://github.com/drc/deep-bench && cd deep-bench
-npm install && bash scripts/cf-setup.sh
+mise run setup               # deps, dataset check, tests, next-step hints
+npx wrangler login           # one-time (opens browser)
+bash scripts/cf-setup.sh     # creates D1, secrets, deploys
 ```
+
+(`mise run setup` needs [mise](https://mise.jdx.dev) + `mise trust`; otherwise
+`npm install && bash scripts/setup.sh` does the same. `dataset.json` is
+committed, so no data downloads are needed unless you want to rebuild it —
+then `mise run data && mise run build`.)
 
 Creates the D1 database, applies schema, prompts for secrets, deploys.
 Full guide: [docs/deploy.md](docs/deploy.md).

@@ -4,6 +4,10 @@
 [tools]
 node = "26"          # matches CI; python comes from system PATH
 
+[tasks.setup]
+description = "First-time setup after cloning: deps, dataset check, tests"
+run = "bash scripts/setup.sh"
+
 [tasks.data]
 description = "Download raw nflverse weekly rosters 2002-2025 (~258 MB)"
 dir = "{{config_root}}"
