@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deep Bench — NFL Rarity Trivia</title>
+<style>
+:root{
+  --bg:#0b0e14;--card:#141926;--card2:#1b2233;--line:#26304a;--txt:#e8ecf5;--dim:#8b96ad;
+  --green:#3ecf8e;--amber:#f5b04c;--red:#f56b6b;--blue:#5aa9f5;--purple:#b07af5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding-bottom:60px}
+.wrap{max-width:860px;margin:0 auto;padding:20px}
+header{display:flex;align-items:baseline;gap:12px;padding:22px 0 6px;flex-wrap:wrap}
+h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+h1 .accent{color:var(--green)}
+.sub{color:var(--dim);font-size:13px}
+nav{display:flex;gap:6px;margin:14px 0 18px;flex-wrap:wrap}
+nav button{background:var(--card);border:1px solid var(--line);color:var(--dim);padding:8px 16px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600}
+nav button.on{background:var(--card2);color:var(--txt);border-color:var(--green)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:14px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:10px}
+.prompt{font-size:19px;font-weight:700;margin-bottom:4px}
+.hint{color:var(--dim);font-size:13px;margin-bottom:12px}
+.row{display:flex;gap:8px;margin-top:6px}
+input[type=text],input[type=password],select{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:9px;font-size:15px;outline:none}
+input:focus{border-color:var(--green)}
+button.go{background:var(--green);color:#08281a;border:0;padding:10px 20px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--dim);padding:8px 14px;border-radius:9px;cursor:pointer;font-size:13px}
+button.ghost:hover{color:var(--txt);border-color:var(--dim)}
+.verdict{margin-top:14px;padding:14px;border-radius:10px;display:none}
+.verdict.ok{background:#12281d;border:1px solid #1e5c3d}
+.verdict.bad{background:#2b1616;border:1px solid #6b2a2a}
+.verdict .big{font-size:17px;font-weight:700}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px;vertical-align:2px}
+.badge.common{background:#3d2f14;color:var(--amber)}
+.badge.uncommon{background:#14283d;color:var(--blue)}
+.badge.rare{background:#25143d;color:var(--purple)}
+.tierrow{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.tierrow:last-child{border-bottom:0}
+.fame{color:var(--dim);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.stat{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:14px}
+.stat .v{font-size:24px;font-weight:800;color:var(--green)}
+.stat .l{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.note{color:var(--dim);font-size:13px;margin-top:10px}
+.pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;margin:3px 3px 0 0;font-size:12.5px;color:var(--dim)}
+a{color:var(--blue)}
+.tabs-mini{display:flex;gap:6px;margin-bottom:10px}
+.tabs-mini button{font-size:12px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Deep<span class="accent">Bench</span></h1>
+  <span class="sub">NFL rarity trivia demo · rare answers win · coverage <span id="cov"></span></span>
+</header>
+<nav>
+  <button data-tab="daily" class="on">Daily Questions</button>
+  <button data-tab="bench">Lookup Bench</button>
+  <button data-tab="feas">Feasibility</button>
+  <button data-tab="jev">jev Settings</button>
+</nav>
+
+<!-- DAILY -->
+<div id="tab-daily">
+  <div class="tabs-mini">
+    <button class="ghost on" data-mode="tp">Team + Position</button>
+    <button class="ghost" data-mode="tn">Team + Number</button>
+    <button class="ghost" data-mode="mt">Fewest Teams</button>
+  </div>
+  <div class="card">
+    <h2>Question of the day — <span id="modeLabel"></span></h2>
+    <div class="prompt" id="prompt">…</div>
+    <div class="hint" id="hint"></div>
+    <div class="row">
+      <input type="text" id="answer" placeholder="Type an answer…" autocomplete="off">
+      <button class="go" onclick="submitAnswer()">Submit</button>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="note" id="tierPeek" style="display:none">
+      <button class="ghost" onclick="tierPeek()">🔍 Peek: how would jev tier this question's candidates?</button>
+      <div id="tierList" style="margin-top:10px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>How scoring works</h2>
+    <div class="sub">Everyone answers the same question. Rarer answers win: <b class="badge common">common</b> = 10 pts · <b class="badge uncommon">uncommon</b> = 50 pts · <b class="badge rare">rare</b> = 100 pts. Invalid answers score 0. The live "picked" % shows what other players on this tailnet chose.</div>
+  </div>
+</div>
+
+<!-- BENCH -->
+<div id="tab-bench" class="hidden">
+  <div class="card">
+    <h2>Lookup bench — interrogate any question</h2>
+    <div class="row">
+      <select id="benchType" onchange="benchTypeChanged()">
+        <option value="tp">Team + Position → players</option>
+        <option value="tn">Team + Number → players</option>
+        <option value="player">Player → teams &amp; tenures</option>
+      </select>
+    </div>
+    <div class="row" id="benchInputs"></div>
+    <div class="row"><button class="go" onclick="runBench()">Look up</button></div>
+    <div id="benchOut" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- FEAS -->
+<div id="tab-feas" class="hidden">
+  <div class="card"><h2>Feasibility report</h2><div id="feasOut">loading…</div></div>
+</div>
+
+<!-- JEV -->
+<div id="tab-jev" class="hidden">
+  <div class="card">
+    <h2>jev-router decisioning</h2>
+    <div class="sub" style="margin-bottom:12px">The demo grades from the roster database instantly. <b>typesafe/jev-router</b> (OpenRouter) is the decisioning engine on top: it adjudicates answers outside the dataset (pre-2002 players, obscure stints) and can tier candidate answers by fan-popularity. Paste an OpenRouter key to light it up — it's stored locally on this server only.</div>
+    <div class="row">
+      <input type="password" id="jevKey" placeholder="sk-or-v1-…">
+      <button class="go" onclick="saveKey()">Save</button>
+      <button class="ghost" onclick="testKey()">Test</button>
+    </div>
+    <div id="jevStatus" class="note"></div>
+  </div>
+</div>
+</div>
+
+<script>
+let daily = null, curMode = 'tp', today = new Date().toISOString().slice(0,10);
+const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
+const MODE_HINT = {tp:'Any player who played that position for that team, 2002–present. Rarer = better.', tn:'Anyone who wore that number for that team. Rarer = better.', mt:'Of the listed stints, pick the team with the FEWEST seasons.'};
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  ['daily','bench','feas','jev'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
+});
+document.querySelectorAll('.tabs-mini button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs-mini button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  curMode=b.dataset.mode; showMode();
+});
+document.getElementById('answer').addEventListener('keydown',e=>{if(e.key==='Enter')submitAnswer()});
+
+async function loadDaily(){
+  const r = await fetch('/api/daily?date='+today).then(r=>r.json());
+  daily = r.questions; document.getElementById('cov').textContent = r.coverage;
+  showMode();
+}
+function showMode(){
+  const q = daily[curMode];
+  document.getElementById('modeLabel').textContent = MODE_LABEL[curMode];
+  document.getElementById('prompt').textContent = q.prompt;
+  document.getElementById('hint').textContent = MODE_HINT[curMode];
+  document.getElementById('verdict').className='verdict'; document.getElementById('verdict').style.display='none';
+  document.getElementById('tierPeek').style.display='none';
+  document.getElementById('tierList').innerHTML='';
+  document.getElementById('answer').value='';
+}
+async function submitAnswer(){
+  const v = document.getElementById('answer').value.trim();
+  if(!v) return;
+  const el = document.getElementById('verdict');
+  el.style.display='block';
+  el.className='verdict'; el.innerHTML='<div class="big">⏳ checking…</div>';
+  const r = await fetch('/api/grade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:curMode,qid:daily[curMode].id,answer:v,date:today})}).then(r=>r.json());
+  if(r.status==='ok'){
+    el.className='verdict ok';
+    el.innerHTML=`<div class="big">✅ ${esc(r.answer)}<span class="badge ${r.tier}">${r.tier}</span></div>
+      <div style="color:var(--dim);margin-top:4px">+${r.points} points · picked by ${r.pickedPct==null?'?':r.pickedPct}% of ${r.totalAnswers||'—'} answers so far${r.source==='jev'?' · <span style="color:var(--green)">adjudicated by jev-router</span>':''}</div>
+      ${r.note?`<div style="color:var(--dim);margin-top:4px;font-size:13px">${esc(r.note)}</div>`:''}`;
+    document.getElementById('tierPeek').style.display = curMode==='mt' ? 'none' : 'block';
+  } else {
+    el.className='verdict bad';
+    el.innerHTML=`<div class="big">${r.status==='wrong'?'❌ Rejected by jev-router':'🤷 Not in the roster database'}</div>
+      <div style="color:var(--dim);margin-top:4px">${esc(r.note||'Try another answer.')}</div>`;
+    if(r.status==='not_found') document.getElementById('tierPeek').style.display='block';
+  }
+}
+async function tierPeek(){
+  const out = document.getElementById('tierList');
+  out.innerHTML='<span class="sub">tiering…</span>';
+  const r = await fetch('/api/jevtier',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:curMode,qid:daily[curMode].id})}).then(r=>r.json());
+  out.innerHTML = `<div class="sub" style="margin-bottom:6px">source: ${r.source}${r.error?' ('+esc(r.error)+')':''}</div>` +
+    (r.tiers||[]).map(t=>`<div class="tierrow"><span>${esc(t.name)}</span><span><span class="fame">fame ${t.fame}</span> <span class="badge ${t.tier}">${t.tier}</span></span></div>`).join('');
+}
+
+// bench
+function benchTypeChanged(){renderBenchInputs()}
+function renderBenchInputs(){
+  const t=document.getElementById('benchType').value, w=document.getElementById('benchInputs');
+  if(t==='player') w.innerHTML='<input type="text" id="bq" placeholder="Player name…" style="flex:1">';
+  else {
+    w.innerHTML=`<input type="text" id="bteam" placeholder="Team code (e.g. TB, CHI)" style="max-width:200px">`+
+      (t==='tp'?`<input type="text" id="bpos" placeholder="Position (e.g. QB, DL, S)" style="max-width:220px">`:`<input type="text" id="bnum" placeholder="Number (e.g. 99)" style="max-width:140px">`);
+  }
+}
+renderBenchInputs();
+async function runBench(){
+  const t=document.getElementById('benchType').value, out=document.getElementById('benchOut');
+  out.innerHTML='<span class="sub">looking up…</span>';
+  if(t==='player'){
+    const q=document.getElementById('bq').value;
+    const r=await fetch('/api/lookup?type=player&q='+encodeURIComponent(q)).then(r=>r.json());
+    out.innerHTML = r.hits.map(h=>`<div class="tierrow"><span>${esc(h.name)} <span class="fame">fame ${h.fame}</span></span><span class="fame">${h.teams.map(esc).join(' · ')}</span></div>`).join('') || '<span class="sub">no hits</span>';
+    return;
+  }
+  const team=document.getElementById('bteam').value.trim().toUpperCase();
+  const param = t==='tp' ? 'pos='+encodeURIComponent(document.getElementById('bpos').value.trim().toUpperCase()) : 'num='+encodeURIComponent(document.getElementById('bnum').value.trim());
+  const r=await fetch(`/api/lookup?type=${t}&team=${encodeURIComponent(team)}&${param}`).then(r=>r.json());
+  if(!r.question){ out.innerHTML='<span class="sub">Nothing found — check the code (use TB, CHI, LAR, LV…).</span>'; return; }
+  out.innerHTML = `<div class="prompt" style="margin-bottom:8px">${esc(r.question)}</div>` +
+    r.tiers.map(x=>`<div class="tierrow"><span>${esc(x.name)}</span><span><span class="fame">fame ${x.fame}</span> <span class="badge ${x.tier}">${x.tier}</span></span></div>`).join('');
+}
+
+// feas
+async function loadFeas(){
+  const r=await fetch('/api/feasibility').then(r=>r.json());
+  document.getElementById('feasOut').innerHTML = `
+    <div class="statgrid" style="margin-bottom:14px">
+      <div class="stat"><div class="v">${r.players.toLocaleString()}</div><div class="l">players (${r.coverage})</div></div>
+      <div class="stat"><div class="v">${r.pools.tp.count}</div><div class="l">team+position questions (avg ${r.pools.tp.avg} answers)</div></div>
+      <div class="stat"><div class="v">${r.pools.tn.count}</div><div class="l">team+number questions (avg ${r.pools.tn.avg} answers)</div></div>
+      <div class="stat"><div class="v">${r.pools.mt.count}</div><div class="l">multi-team questions</div></div>
+    </div>
+    <h2 style="font-size:12px;color:var(--dim);margin:10px 0 6px">Sample — team+position (fame score in parens; high fame = common answer)</h2>
+    ${r.examples.tp.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}
+    <h2 style="font-size:12px;color:var(--dim);margin:14px 0 6px">Sample — team+number</h2>
+    ${r.examples.tn.map(x=>`<span class="pill">${esc(x)}</span>`).join('')}
+    <h2 style="font-size:12px;color:var(--dim);margin:14px 0 6px">Sample — multi-team</h2>
+    <span class="pill">${esc(r.examples.mt)}</span>
+    <div class="note">Question quality depends on the fame proxy (career seasons + draft capital). jev-router tiering (see Settings) is the real popularity signal — this heuristic just bootstraps.</div>`;
+}
+
+// jev
+async function refreshJev(){
+  const s=await fetch('/api/jevstatus').then(r=>r.json());
+  document.getElementById('jevStatus').innerHTML = s.configured
+    ? (s.live?`✅ live · <span class="mono">${esc(s.model)}</span>`:`⚠️ key set but test failed: ${esc(s.error||'?')}`)
+    : `⚪ no key set — heuristic tiering only. <span class="mono">${esc(s.model)}</span> will handle long-tail answers once configured.`;
+}
+async function saveKey(){
+  await fetch('/api/jevkey',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:document.getElementById('jevKey').value})});
+  refreshJev();
+}
+async function testKey(){ refreshJev(); }
+
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+loadDaily(); loadFeas(); refreshJev();
+</script>
+</body>
+</html>

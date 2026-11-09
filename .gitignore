@@ -1,0 +1,13 @@
+# raw nflverse downloads (~258 MB) — rebuildable, see README
+data/roster_weekly_*.csv
+
+# generated artifacts
+public/dataset.json
+data/jev-cache.json
+
+# secrets — never commit
+data/.jevkey
+
+# runtime
+server.pid
+server.log
