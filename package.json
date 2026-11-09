@@ -13,5 +13,9 @@
   },
   "devDependencies": {
     "wrangler": "^4.158.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "workerd": true
   }
 }
