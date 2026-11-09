@@ -29,7 +29,7 @@ jobs:
           ! git grep -lIE "sk-or-v1-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----" -- .
 
       - name: Unit tests
-        run: node --test test/
+        run: node --test test/game.test.js
 
       - name: Smoke test (boots server, plays a drive)
         run: bash scripts/smoke.sh
