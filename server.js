@@ -119,8 +119,8 @@ async function jev(messages, maxTokens = 800) {
 
 function qPrompt(q) {
   switch (q.mode) {
-    case 'tp': return `Name a player who played ${q.pos} for the ${D.teams[q.team]} at any point (2002-present).`;
-    case 'tn': return `Name a player who wore jersey number #${q.num} for the ${D.teams[q.team]} at any point (2002-present).`;
+    case 'tp': return `Name any player who has played ${q.pos} for the ${D.teams[q.team]} at any point in franchise history.`;
+    case 'tn': return `Name any player who has worn jersey number #${q.num} for the ${D.teams[q.team]} at any point in franchise history.`;
     case 'mt': return `${q.player} played for ${q.tenures.length} NFL teams. Which one did he spend the FEWEST seasons with?`;
   }
 }
