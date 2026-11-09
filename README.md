@@ -1,56 +1,106 @@
-# Deep Bench — NFL Rarity Trivia demo
+# Deep Bench 🏈
 
-Krillion/Farflung-style daily questions where **rare answers win**. Three question types:
+[![CI](https://github.com/drc/deep-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/drc/deep-bench/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![node](https://img.shields.io/badge/node-26-green)
+![python](https://img.shields.io/badge/python-3.12+-yellow)
 
-1. **Team + Position → player** — "Name a QB who played for the Buccaneers." (Brady = common, Freeman = rarer)
-2. **Team + Number → player** — "Name a player who wore #99 for the Bears."
-3. **Player → fewest-tenure team** — "Rivers played for the Chargers & Colts. Which did he spend FEWEST seasons with?"
+Krillion-style NFL rarity trivia: every question has many correct answers, and
+**the rarer your answer, the more yards you gain**. Five questions per drive,
+then you line up for a field goal — great answers put you inside the 20, lazy
+ones leave you staring at a 62-yarder that probably won't make it.
 
-## The Drive (game flow)
+## The Drive
 
-Five questions per drive: two team+position, two team+number, one multi-team.
-Each answer gains yardage by rarity: **rare +13, uncommon +10, common +6, miss +0**.
-Ball starts at own 25; perfect play (~65 yds) lands inside the opponent's 20.
-Then the field-goal attempt: distance = yards-to-goal + 17, with NFL-style make
-odds (27-yd ≈ 96%, 45-yd ≈ 70%, 55+ ≈ 40%, 65+ ≈ 12%). Made kick = 3 points.
+Five questions, one at a time: **two** team+position ("Name a QB who played for
+the Buccaneers"), **two** team+number ("Who wore #99 for the Bears"), and **one**
+multi-team ("He played for 3 NFL teams — which did he spend the *fewest*
+seasons with?").
 
-## Data
+Each answer is a play:
 
-- Source: nflverse weekly rosters (`data/roster_weekly_*.csv`, 2002–2025, ~258 MB),
-  fetched via `https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_<year>.csv`
-- Filtered to active-roster statuses only (ACT/INA/RES — no practice squad / cuts)
-- Relocations merged: SD→LAC, OAK→LV, STL→LAR, legacy codes ARZ/BLT/CLV/HST/SL
-- Built into `public/dataset.json` (~3 MB): 12,134 players, 416 team+position
-  groups, 3,053 team+number groups, 6,385 multi-team players
+| Answer rarity | Yards |
+|---|---|
+| 🟣 rare | **+13** |
+| 🔵 uncommon | +10 |
+| 🟠 common | +6 |
+| 🔴 miss | +0 |
+
+Ball starts at your own 25. Perfect play (5 rare) gains 65 yards and lands at
+the opponent's 10 — a chip shot. Then kick: distance = yards-to-goal + 17,
+with NFL-accurate make odds (27-yd ≈ 96%, 45-yd ≈ 70%, 55+ ≈ 40%, 65+ ≈ 12%).
+**Made field goal = 3 points.**
+
+Pick a team edition (Bears ★ by default) to scope all questions to your squad.
 
 ## Decisioning: typesafe/jev-router
 
-The local roster DB grades answers instantly with a fame-based heuristic
-(career seasons + draft capital). **jev-router** (OpenRouter `typesafe/jev-router`)
-is the decisioning layer on top:
+Two layers grade answers:
 
-- **Adjudication** — answers outside the dataset (pre-2002 players like Dan
-  Hampton or Vinny's Bucs years, odd stints) are judged valid/invalid + tiered
-- **Tiering** — candidate lists can be tiered by fan-popularity (common/uncommon/rare)
+1. **Roster database** (instant, free) — built from nflverse weekly rosters,
+   2002–2025. Grades valid answers, fuzzy-matches last names, and scores
+   rarity from a fame proxy (career seasons + draft capital).
+2. **[jev-router](https://openrouter.ai/typesafe/jev-router)** (OpenRouter) —
+   adjudicates everything outside the dataset: pre-2002 deep cuts (Dan Hampton
+   wore #99 for the Bears; Vinny Testaverde really was a Bucs QB), odd stints,
+   and near-miss names. Assigns the common/uncommon/rare tier and explains its
+   verdict. Verdicts cache to `data/jev-cache.json`.
 
-Set a key: paste it in the demo's **jev Settings** tab (stored server-side in
-`data/.jevkey`), or `export OPENROUTER_API_KEY=…` before starting. Verdicts are
-cached in `data/jev-cache.json`.
+The roster DB's coverage window is not a trivia constraint — jev judges
+franchise history all-time, which is what the game wants.
 
-## Run
+**Secrets:** the OpenRouter key lives in `data/.jevkey` (or `OPENROUTER_API_KEY`),
+which is gitignored and never committed. CI runs a secret-scan on every push.
+
+## Quickstart
+
+Tasks are run with [mise](https://mise.jdx.dev) (`mise trust` once, then):
 
 ```bash
-python3 build_data.py        # rebuild dataset from CSVs (only if data changes)
-node server.js               # listens on 127.0.0.1:4310
-tailscale serve --bg --http=443 4310   # tailnet: https://oracle.tail72fd3b.ts.net
-tailscale serve --bg --http=80 4310    # plain-http fallback
+mise run data     # optional: fetch raw CSVs (2002–2025, ~258 MB)
+mise run build    # rebuild dataset.json (prebuilt copy is committed)
+mise run serve    # demo on http://127.0.0.1:4310
+mise run smoke    # boot + API smoke test
+mise run tunnel   # expose on your tailnet
 ```
 
-Pages: Daily Questions · Lookup Bench (interrogate any question) · Feasibility
-stats · jev Settings.
+No mise? `node server.js` works the same. A prebuilt `public/dataset.json` is
+committed, so cloning → serving requires zero data work.
 
-## Known demo limitations
+## Data
 
-- Pre-2002 coverage (so answers like Vinny-as-Buc need jev adjudication)
-- Heuristic tiers are a proxy; jev tiering is the real popularity signal
-- Live answer distribution ("picked %") is in-memory, resets on restart
+- Source: [nflverse weekly rosters](https://github.com/nflverse/nflverse-data)
+  2002–2025, filtered to active-roster statuses (ACT/INA/RES — no practice
+  squad or offseason cuts)
+- Relocations merged (SD→LAC, OAK→LV, STL→LAR; legacy codes ARZ/BLT/CLV/HST/SL)
+- Built dataset: **12,134 players**, 416 team+position groups, 3,053
+  team+number groups, 6,385 multi-team players (~3.9 MB JSON)
+
+## Repo layout
+
+```
+build_data.py       CSVs -> dataset.json (dedupe, positions, fame scores)
+server.js           zero-dep Node server: game engine, grading, jev calls
+public/index.html   the whole UI (vanilla JS)
+public/dataset.json committed prebuilt dataset
+scripts/smoke.sh    boots server, plays a full drive, asserts the API
+mise.toml           task runner
+```
+
+## API (demo surface)
+
+| Endpoint | What |
+|---|---|
+| `POST /api/game/start {team}` | new 5-question drive |
+| `POST /api/game/answer {gameId, answer}` | grade play, gain yards, get next question |
+| `POST /api/game/kick {gameId}` | attempt the field goal |
+| `GET /api/lookup?type=tp\|tn\|player&…` | lookup bench for interrogating questions |
+| `GET /api/feasibility?team=` | question-pool stats |
+| `POST /api/grade` | stateless single-question grading (daily mode) |
+
+## Known limitations / roadmap
+
+- Raw data starts at 2002 — pre-2002 answers rely on jev adjudication
+- Heuristic fame tiers are a bootstrap; jev tiering is the real signal
+- Game sessions and answer distribution are in-memory (restart = fresh)
+- One player at a time; multi-player lobbies would be the next step

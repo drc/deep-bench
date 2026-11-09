@@ -1,0 +1,33 @@
+# Deep Bench task runner — https://mise.jdx.dev
+# tasks: mise run <task>   (mise tasks for the full list)
+
+[tools]
+node = "26"          # matches CI; python comes from system PATH
+
+[tasks.data]
+description = "Download raw nflverse weekly rosters 2002-2025 (~258 MB)"
+dir = "{{config_root}}"
+run = """
+for y in $(seq 2002 2025); do
+  [ -f data/roster_weekly_$y.csv ] || curl -sL -o data/roster_weekly_$y.csv \
+    "https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_$y.csv"
+done
+"""
+
+[tasks.build]
+description = "Rebuild public/dataset.json from raw CSVs"
+run = "python3 build_data.py"
+sources = ["build_data.py", "data/*.csv"]
+outputs = ["public/dataset.json"]
+
+[tasks.serve]
+description = "Run the demo on 127.0.0.1:4310"
+run = "node server.js"
+
+[tasks.smoke]
+description = "Boot the server and run the API smoke test"
+run = "bash scripts/smoke.sh"
+
+[tasks.tunnel]
+description = "Expose on the tailnet at https://oracle.tail72fd3b.ts.net"
+run = "tailscale serve --bg --http=443 4310 --http=80 4310"
