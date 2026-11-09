@@ -67,11 +67,15 @@ for (const [key, p] of Object.entries(D.players)) {
   pool.mt.push({ id: `mt:${key}`, mode: 'mt', key, player: p.name, tenures: tenures.sort((a, b) => b.n - a.n) });
 }
 
-function pickDaily(dateStr) {
-  const seed = [...dateStr].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7);
+function pickDaily(dateStr, team) {
+  const seed = [...(dateStr + '|' + (team || ''))].reduce((a, c) => a * 31 + c.charCodeAt(0) | 0, 7);
   const rnd = mulberry32(seed);
   const pick = arr => arr[Math.floor(rnd() * arr.length)];
-  return { tp: pick(pool.tp), tn: pick(pool.tn), mt: pick(pool.mt) };
+  const f = arr => team
+    ? arr.filter(q => q.team === team || (q.tenures && q.tenures.some(t => t.team === team)))
+    : arr;
+  const tp = f(pool.tp), tn = f(pool.tn), mt = f(pool.mt);
+  return { tp: pick(tp), tn: pick(tn), mt: pick(mt), counts: { tp: tp.length, tn: tn.length, mt: mt.length } };
 }
 
 // ---------- answer matching ----------
@@ -113,11 +117,11 @@ async function jev(messages, maxTokens = 800) {
   return JSON.parse(j.choices[0].message.content);
 }
 
-function qPrompt(q) {
+function qPrompt(q, team) {
   switch (q.mode) {
     case 'tp': return `Name a player who played ${q.pos} for the ${D.teams[q.team]} at any point (2002-present).`;
     case 'tn': return `Name a player who wore jersey number #${q.num} for the ${D.teams[q.team]} at any point (2002-present).`;
-    case 'mt': return `${q.player} played for ${q.tenures.length} NFL teams: ${q.tenures.map(t => D.teams[t.team]).join(', ')}. Which team did he spend the FEWEST seasons with?`;
+    case 'mt': return `${q.player} played for ${q.tenures.length} NFL teams: ${q.tenures.map(t => D.teams[t.team]).join(', ')}. Which team did he spend the FEWEST seasons with?${team && q.tenures.some(t => t.team === team) ? ` (Yes, one of them is the ${D.teams[team]}.)` : ''}`;
   }
 }
 
@@ -193,14 +197,18 @@ const server = http.createServer(async (req, res) => {
       const body = await new Promise(r => { let d = ''; req.on('data', c => d += c); req.on('end', () => r(d ? JSON.parse(d) : {})); });
       if (p === '/api/daily') {
         const date = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
-        const qs = pickDaily(date);
+        const team = (url.searchParams.get('team') || '').toUpperCase() || null;
+        const qs = pickDaily(date, team);
         return send(200, {
           date,
+          team,
           coverage: D.coverage,
+          teams: D.teams,
+          counts: qs.counts,
           questions: {
-            tp: { ...qs.tp, prompt: qPrompt(qs.tp), cands: undefined },
-            tn: { ...qs.tn, prompt: qPrompt(qs.tn), cands: undefined },
-            mt: { ...qs.mt, prompt: qPrompt(qs.mt), tenures: undefined },
+            tp: { ...qs.tp, prompt: qPrompt(qs.tp, team), cands: undefined },
+            tn: { ...qs.tn, prompt: qPrompt(qs.tn, team), cands: undefined },
+            mt: { ...qs.mt, prompt: qPrompt(qs.mt, team), tenures: undefined },
           },
         });
       }
@@ -253,15 +261,24 @@ const server = http.createServer(async (req, res) => {
         return send(400, { error: 'bad type' });
       }
       if (p === '/api/feasibility') {
+        const team = (url.searchParams.get('team') || '').toUpperCase() || null;
+        const f = arr => team ? arr.filter(q => q.team === team || (q.tenures && q.tenures.some(t => t.team === team))) : arr;
+        const poolsF = { tp: f(pool.tp), tn: f(pool.tn), mt: f(pool.mt) };
         const stat = arr => {
+          if (!arr.length) return { count: 0, min: 0, avg: 0, max: 0 };
           const sizes = arr.map(q => q.cands ? q.cands.length : q.tenures.length);
           return { count: arr.length, min: Math.min(...sizes), avg: +(sizes.reduce((a, b) => a + b, 0) / sizes.length).toFixed(1), max: Math.max(...sizes) };
         };
-        const examples = m => ({ tp: pool.tp[Math.floor(pool.tp.length / 2)], tn: pool.tn[Math.floor(pool.tn.length / 2)], mt: pool.mt[Math.floor(pool.mt.length / 2)] }[m]);
+        const examples = m => ({ tp: poolsF.tp[Math.floor(poolsF.tp.length / 2)], tn: poolsF.tn[Math.floor(poolsF.tn.length / 2)], mt: poolsF.mt[Math.floor(poolsF.mt.length / 2)] }[m]);
+        const ex = { tp: examples('tp'), tn: examples('tn'), mt: examples('mt') };
         return send(200, {
-          coverage: D.coverage, players: Object.keys(D.players).length,
-          pools: { tp: stat(pool.tp), tn: stat(pool.tn), mt: stat(pool.mt) },
-          examples: { tp: examples('tp').cands.slice(0, 8).map(c => `${c.name} (${c.fame})`), tn: examples('tn').cands.slice(0, 8).map(c => `${c.name} (${c.fame})`), mt: examples('mt').player },
+          coverage: D.coverage, players: Object.keys(D.players).length, team, teams: D.teams,
+          pools: { tp: stat(poolsF.tp), tn: stat(poolsF.tn), mt: stat(poolsF.mt) },
+          examples: {
+            tp: ex.tp ? ex.tp.cands.slice(0, 8).map(c => `${c.name} (${c.fame})`) : [],
+            tn: ex.tn ? ex.tn.cands.slice(0, 8).map(c => `${c.name} (${c.fame})`) : [],
+            mt: ex.mt ? ex.mt.player : null,
+          },
         });
       }
       if (p === '/api/jevkey') {

@@ -71,13 +71,17 @@ a{color:var(--blue)}
 
 <!-- DAILY -->
 <div id="tab-daily">
+  <div class="row" style="margin-bottom:10px">
+    <select id="teamSel" onchange="teamChanged()"><option value="">All teams (league-wide)</option></select>
+  </div>
   <div class="tabs-mini">
     <button class="ghost on" data-mode="tp">Team + Position</button>
     <button class="ghost" data-mode="tn">Team + Number</button>
     <button class="ghost" data-mode="mt">Fewest Teams</button>
   </div>
   <div class="card">
-    <h2>Question of the day — <span id="modeLabel"></span></h2>
+    <h2>Question of the day — <span id="edition">League-wide</span> · <span id="modeLabel"></span></h2>
+    <div class="sub" id="counts" style="margin-bottom:10px"></div>
     <div class="prompt" id="prompt">…</div>
     <div class="hint" id="hint"></div>
     <div class="row">
@@ -151,9 +155,26 @@ document.querySelectorAll('.tabs-mini button').forEach(b=>b.onclick=()=>{
 document.getElementById('answer').addEventListener('keydown',e=>{if(e.key==='Enter')submitAnswer()});
 
 async function loadDaily(){
-  const r = await fetch('/api/daily?date='+today).then(r=>r.json());
+  const team = document.getElementById('teamSel').value || localStorage.getItem('db_team') || '';
+  const r = await fetch('/api/daily?date='+today+'&team='+encodeURIComponent(team)).then(r=>r.json());
   daily = r.questions; document.getElementById('cov').textContent = r.coverage;
+  // populate team selector once
+  const sel = document.getElementById('teamSel');
+  if (sel.options.length === 1) {
+    Object.entries(r.teams).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([code,nm])=>{
+      const o=document.createElement('option'); o.value=code; o.textContent=nm; sel.appendChild(o);
+    });
+    sel.value = r.team || '';
+    document.getElementById('teamSelLabel')?.remove();
+  }
+  const edition = r.team ? `${r.teams[r.team]} Edition` : 'League-wide';
+  document.getElementById('edition').textContent = edition;
+  document.getElementById('counts').textContent = `${r.counts.tp} position · ${r.counts.tn} number · ${r.counts.mt} multi-team questions available`;
   showMode();
+}
+function teamChanged(){
+  localStorage.setItem('db_team', document.getElementById('teamSel').value);
+  loadDaily(); loadFeas();
 }
 function showMode(){
   const q = daily[curMode];
@@ -223,8 +244,11 @@ async function runBench(){
 
 // feas
 async function loadFeas(){
-  const r=await fetch('/api/feasibility').then(r=>r.json());
+  const team=document.getElementById('teamSel').value || localStorage.getItem('db_team') || '';
+  const r=await fetch('/api/feasibility'+(team?'?team='+encodeURIComponent(team):'')).then(r=>r.json());
+  const scope = r.team ? `${(r.teams||{})[r.team] || r.team} only` : 'league-wide';
   document.getElementById('feasOut').innerHTML = `
+    <div class="prompt" style="margin-bottom:10px">Scope: ${esc(scope)}</div>
     <div class="statgrid" style="margin-bottom:14px">
       <div class="stat"><div class="v">${r.players.toLocaleString()}</div><div class="l">players (${r.coverage})</div></div>
       <div class="stat"><div class="v">${r.pools.tp.count}</div><div class="l">team+position questions (avg ${r.pools.tp.avg} answers)</div></div>
