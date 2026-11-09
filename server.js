@@ -117,11 +117,11 @@ async function jev(messages, maxTokens = 800) {
   return JSON.parse(j.choices[0].message.content);
 }
 
-function qPrompt(q, team) {
+function qPrompt(q) {
   switch (q.mode) {
     case 'tp': return `Name a player who played ${q.pos} for the ${D.teams[q.team]} at any point (2002-present).`;
     case 'tn': return `Name a player who wore jersey number #${q.num} for the ${D.teams[q.team]} at any point (2002-present).`;
-    case 'mt': return `${q.player} played for ${q.tenures.length} NFL teams: ${q.tenures.map(t => D.teams[t.team]).join(', ')}. Which team did he spend the FEWEST seasons with?${team && q.tenures.some(t => t.team === team) ? ` (Yes, one of them is the ${D.teams[team]}.)` : ''}`;
+    case 'mt': return `${q.player} played for ${q.tenures.length} NFL teams. Which one did he spend the FEWEST seasons with?`;
   }
 }
 
@@ -157,7 +157,9 @@ const pulses = {}; // "date|qid|normAnswer" -> count
 
 function grade(q, answer, tiers, dateStr) {
   let m = q.mode === 'mt' ? matchMT(q, answer) : matchCandidate(q, answer);
-  if (!m) return { status: 'not_found', note: 'Answer not in roster database (2002+).' };
+  if (!m) return { status: 'not_found', note: q.mode === 'mt'
+    ? 'Doesn\'t match any of his teams — recall another stint and try again.'
+    : 'Answer not in roster database (2002+).' };
   if (q.mode !== 'mt' && !m.tier) {
     const t = heuristicTiers(q.cands).find(x => x.key === m.key);
     m.tier = t ? t.tier : 'uncommon';
@@ -206,9 +208,9 @@ const server = http.createServer(async (req, res) => {
           teams: D.teams,
           counts: qs.counts,
           questions: {
-            tp: { ...qs.tp, prompt: qPrompt(qs.tp, team), cands: undefined },
-            tn: { ...qs.tn, prompt: qPrompt(qs.tn, team), cands: undefined },
-            mt: { ...qs.mt, prompt: qPrompt(qs.mt, team), tenures: undefined },
+            tp: { ...qs.tp, prompt: qPrompt(qs.tp), cands: undefined },
+            tn: { ...qs.tn, prompt: qPrompt(qs.tn), cands: undefined },
+            mt: { ...qs.mt, prompt: qPrompt(qs.mt), tenures: undefined },
           },
         });
       }
@@ -234,7 +236,9 @@ const server = http.createServer(async (req, res) => {
             return send(200, { ...direct, note: direct.note + ' (jev unavailable: ' + e.message + ')' });
           }
         }
-        return send(200, { ...direct, note: direct.note + ' Set a jev key in Settings to adjudicate long-tail answers like this.' });
+        return send(200, { ...direct, note: mode === 'mt'
+          ? direct.note
+          : direct.note + ' Set a jev key in Settings to adjudicate long-tail answers like this.' });
       }
       if (p === '/api/lookup') {
         const type = url.searchParams.get('type');

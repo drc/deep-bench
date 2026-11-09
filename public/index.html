@@ -164,7 +164,7 @@ localStorage.setItem('db_team', curTeam);
 const MY_TEAM = 'CHI';
 const TEAM_COLORS = {ARI:['#97233F'],ATL:['#A71930'],BAL:['#241773'],BUF:['#00338D'],CAR:['#0085CA'],CHI:['#0B162A','#C83803'],CIN:['#FB4F14'],CLE:['#311D00','#FF3C00'],DAL:['#041E42'],DEN:['#FB4F14'],DET:['#0076B6'],GB:['#203731','#FFB612'],HOU:['#03202F'],IND:['#002C5F'],JAX:['#006778'],KC:['#E31837'],LAC:['#0080C6','#FFC20E'],LAR:['#003594','#FFA300'],LV:['#000000'],MIA:['#008E97'],MIN:['#4F2683','#FFC62F'],NE:['#002244'],NO:['#D3BC8D'],NYG:['#0B2265'],NYJ:['#125740'],PHI:['#004C54'],PIT:['#FFB612'],SEA:['#002244','#69B850'],SF:['#AA0000'],TB:['#D50A0A'],TEN:['#0C2340','#4B92DB'],WSH:['#5A1414']};
 const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
-const MODE_HINT = {tp:'Any player who played that position for that team, 2002–present. Rarer = better.', tn:'Anyone who wore that number for that team. Rarer = better.', mt:'Of the listed stints, pick the team with the FEWEST seasons.'};
+const MODE_HINT = {tp:'Any player who played that position for that team, 2002–present. Rarer = better.', tn:'Anyone who wore that number for that team. Rarer = better.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
