@@ -37,6 +37,7 @@ button.ghost:hover{color:var(--txt);border-color:var(--dim)}
 .badge.common{background:#3d2f14;color:var(--amber)}
 .badge.uncommon{background:#14283d;color:var(--blue)}
 .badge.rare{background:#25143d;color:var(--purple)}
+.badge.deep{background:#2b2410;color:#ffd75e;text-shadow:0 0 8px rgba(255,215,94,.45)}
 .badge.miss{background:#2b1616;color:var(--red)}
 .badge.made{background:#12281d;color:var(--green)}
 .tierrow{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px}
@@ -123,7 +124,7 @@ a{color:var(--blue)}
   </div>
   <div class="card">
     <h2>How a drive works</h2>
-    <div class="sub">Five questions: two team+position, two team+number, one multi-team. Each answer is a play — rarer answers gain more yards: <b class="badge rare">rare</b> +13 · <b class="badge uncommon">uncommon</b> +10 · <b class="badge common">common</b> +6 · <b class="badge miss">miss</b> +0. Perfect play moves you ~65 yards, well inside the 20. Then you kick: the closer you got, the shorter the kick and the better your odds. Miss a couple and you're staring at a 55-yarder that probably won't make it.</div>
+    <div class="sub">Five questions: two team+position, two team+number, one multi-team. Each answer is a play — rarer answers gain more yards: <b class="badge deep">deep</b> +14 · <b class="badge rare">rare</b> +12 · <b class="badge uncommon">uncommon</b> +9 · <b class="badge common">common</b> +6 · <b class="badge miss">miss</b> +0. Perfect play moves you 70 yards — deep in the red zone. Then you kick: the closer you got, the shorter the kick and the better your odds. Miss a couple and you're staring at a 55-yarder that probably won't make it.</div>
   </div>
 </div>
 
@@ -170,7 +171,7 @@ a{color:var(--blue)}
 <script>
 const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons'};
 const MODE_HINT = {tp:'Any player who played that position for that team, any era. Rarer = more yards.', tn:'Anyone who wore that number for that team, any era. Rarer = more yards.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
-const YARDAGE = {rare:13, uncommon:10, common:6};
+const YARDAGE = {deep:14, rare:12, uncommon:9, common:6};
 
 let ALL_TEAMS = null, game = null;
 let curMode = null;

@@ -21,13 +21,14 @@ Each answer is a play:
 
 | Answer rarity | Yards |
 |---|---|
-| 🟣 rare | **+13** |
-| 🔵 uncommon | +10 |
+| 🟡 deep *(superfans only)* | **+14** |
+| 🟣 rare | +12 |
+| 🔵 uncommon | +9 |
 | 🟠 common | +6 |
 | 🔴 miss | +0 |
 
-Ball starts at your own 25. Perfect play (5 rare) gains 65 yards and lands at
-the opponent's 10 — a chip shot. Then kick: distance = yards-to-goal + 17,
+Ball starts at your own 25. Perfect play (5 deep) gains 70 yards and lands at
+the opponent's 5 — a chip shot. Then kick: distance = yards-to-goal + 17,
 with NFL-accurate make odds (27-yd ≈ 96%, 45-yd ≈ 70%, 55+ ≈ 40%, 65+ ≈ 12%).
 **Made field goal = 3 points.**
 

@@ -33,12 +33,11 @@ function mulberry32(a) {
 function heuristicTiers(cands) {
   // cands: [{key,name,fame}] sorted fame desc
   const n = cands.length;
-  const commonCut = Math.max(1, Math.round(n * 0.25));
-  const rareCut = Math.ceil(n * 0.45);
-  return cands.map((c, i) => ({
-    ...c,
-    tier: i < commonCut ? 'common' : i >= n - rareCut ? 'rare' : 'uncommon',
-  }));
+  return cands.map((c, i) => {
+    const f = n === 1 ? 0 : i / (n - 1); // 0 = most famous
+    const tier = f < 0.22 ? 'common' : f < 0.55 ? 'uncommon' : f < 0.85 ? 'rare' : 'deep';
+    return { ...c, tier };
+  });
 }
 
 // ---------- question pools ----------
@@ -130,7 +129,7 @@ async function jevAdjudicate(q, answer) {
   const cacheKey = `${q.id}|${norm(answer)}`;
   if (jevCache[cacheKey]) return jevCache[cacheKey];
   const out = await jev([
-    { role: 'system', content: 'You are an NFL trivia judge. You know NFL rosters and history precisely. Respond ONLY with JSON: {"valid": boolean, "tier": "common"|"uncommon"|"rare", "note": string}. valid = the named player/answer actually satisfies the question. tier = how likely a typical NFL fan is to give this same answer: common (most people), uncommon (seasoned fans), rare (deep-cut knowledge).' },
+    { role: 'system', content: 'You are an NFL trivia judge. You know NFL rosters and history precisely. Respond ONLY with JSON: {"valid": boolean, "tier": "common"|"uncommon"|"rare"|"deep", "note": string}. valid = the named player/answer actually satisfies the question. tier = how likely a typical NFL fan is to give this same answer: common (most people), uncommon (seasoned fans), rare (dedicated fans), deep (deepest-cut knowledge — only die-hard superfans or historians would name it).' },
     { role: 'user', content: `Question: ${qPrompt(q)}\nProposed answer: ${answer}\nJudge it.` },
   ], 300);
   jevCache[cacheKey] = out;
@@ -143,7 +142,7 @@ async function jevTier(q) {
   if (jevCache['tier|' + q.id]) return jevCache['tier|' + q.id];
   const list = q.cands ? q.cands.map(c => c.name) : null;
   const out = await jev([
-    { role: 'system', content: 'You rank NFL player name popularity among typical NFL fans. Respond ONLY with JSON: {"tiers": {"<exact player name>": "common"|"uncommon"|"rare"}}. common = most fans name them quickly; uncommon = seasoned fans; rare = deep-cut.' },
+    { role: 'system', content: 'You rank NFL player name popularity among typical NFL fans. Respond ONLY with JSON: {"tiers": {"<exact player name>": "common"|"uncommon"|"rare"|"deep"}}. common = most fans name them quickly; uncommon = seasoned fans; rare = dedicated fans; deep = deepest-cut, only superfans name them.' },
     { role: 'user', content: `Question: ${qPrompt(q)}\nCandidate answers:\n${list.map(n => '- ' + n).join('\n')}\nAssign a tier to each.` },
   ], 2000);
   jevCache['tier|' + q.id] = out;
@@ -152,7 +151,7 @@ async function jevTier(q) {
 }
 
 // ---------- scoring ----------
-const TIER_POINTS = { common: 10, uncommon: 50, rare: 100 };
+const TIER_POINTS = { common: 10, uncommon: 50, rare: 100, deep: 200 };
 const pulses = {}; // "date|qid|normAnswer" -> count
 
 function grade(q, answer, tiers, dateStr) {
@@ -184,12 +183,13 @@ function matchMT(q, answer) {
   if (!t) return null;
   const min = q.tenures[q.tenures.length - 1].n;
   const correct = t.n === min;
-  return { name: D.teams[t.team], tier: correct ? (t.n === 1 ? 'rare' : 'uncommon') : 'common', tenure: t.n, correct };
+  const tier = !correct ? 'common' : t.n === 1 ? 'deep' : t.n === 2 ? 'rare' : 'uncommon';
+  return { name: D.teams[t.team], tier, tenure: t.n, correct };
 }
 
 // ---------- drive game (5 questions -> field goal) ----------
 const GAMES = new Map();
-const YARDAGE = { rare: 13, uncommon: 10, common: 6 };
+const YARDAGE = { deep: 14, rare: 12, uncommon: 9, common: 6 };
 const DRIVE_START = 25; // own 25
 const KICK_ODDS = d => d <= 29 ? 0.96 : d <= 34 ? 0.92 : d <= 39 ? 0.86 : d <= 44 ? 0.78 : d <= 49 ? 0.70 : d <= 54 ? 0.55 : d <= 59 ? 0.40 : 0.12;
 
