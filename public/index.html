@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Deep Bench — NFL Rarity Trivia</title>
 <style>
 :root{
@@ -10,7 +10,8 @@
   --green:#3ecf8e;--amber:#f5b04c;--red:#f56b6b;--blue:#5aa9f5;--purple:#b07af5;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font:15px/1.5 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;padding-bottom:60px}
+html,body{overflow-x:hidden}
+body{background:var(--bg);color:var(--txt);font:16px/1.5 -apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%;padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .wrap{max-width:860px;margin:0 auto;padding:20px}
 header{display:flex;align-items:baseline;gap:12px;padding:22px 0 6px;flex-wrap:wrap}
 h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
@@ -24,12 +25,12 @@ nav button.on{background:var(--card2);color:var(--txt);border-color:var(--green)
 .prompt{font-size:19px;font-weight:700;margin-bottom:4px}
 .hint{color:var(--dim);font-size:13px;margin-bottom:12px}
 .row{display:flex;gap:8px;margin-top:6px}
-input[type=text],input[type=password],select{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:9px;font-size:15px;outline:none}
+input[type=text],input[type=password],select{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:9px;font-size:16px;outline:none}
 input:focus{border-color:var(--green)}
 button.go{background:var(--green);color:#08281a;border:0;padding:10px 20px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px}
 button.ghost{background:transparent;border:1px solid var(--line);color:var(--dim);padding:8px 14px;border-radius:9px;cursor:pointer;font-size:13px}
 button.ghost:hover{color:var(--txt);border-color:var(--dim)}
-.verdict{margin-top:14px;padding:14px;border-radius:10px;display:none}
+.verdict{margin-top:14px;padding:14px;border-radius:10px;display:none;overflow-wrap:anywhere}
 .verdict.ok{background:#12281d;border:1px solid #1e5c3d}
 .verdict.bad{background:#2b1616;border:1px solid #6b2a2a}
 .verdict .big{font-size:17px;font-weight:700}
@@ -40,7 +41,8 @@ button.ghost:hover{color:var(--txt);border-color:var(--dim)}
 .badge.deep{background:#2b2410;color:#ffd75e;text-shadow:0 0 8px rgba(255,215,94,.45)}
 .badge.miss{background:#2b1616;color:var(--red)}
 .badge.made{background:#12281d;color:var(--green)}
-.tierrow{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.tierrow{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid var(--line);font-size:14px;gap:8px}
+.tierrow>span{min-width:0;overflow-wrap:anywhere}
 .tierrow:last-child{border-bottom:0}
 .fame{color:var(--dim);font-size:12px}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -51,7 +53,7 @@ th{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .stat .v{font-size:24px;font-weight:800;color:var(--green)}
 .stat .l{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
-.note{color:var(--dim);font-size:13px;margin-top:10px}
+.note{color:var(--dim);font-size:13px;margin-top:10px;overflow-wrap:anywhere}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 12px;margin:3px 3px 0 0;font-size:12.5px;color:var(--dim)}
 a{color:var(--blue)}
 .hidden{display:none!important}
@@ -62,7 +64,7 @@ a{color:var(--blue)}
 .field .marker{position:absolute;top:3px;bottom:3px;width:4px;background:var(--txt);border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.6);transition:left .6s cubic-bezier(.2,.8,.2,1)}
 .fieldlabel{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:4px;letter-spacing:1px}
 .ballpos{font-size:15px;font-weight:700;margin:10px 0 2px}
-.logrow{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.logrow{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;overflow-wrap:anywhere}
 .logrow:last-child{border-bottom:0}
 .logrow .n{color:var(--dim);width:26px;flex-shrink:0}
 .logrow .g{margin-left:auto;font-weight:700;white-space:nowrap}
