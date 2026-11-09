@@ -194,19 +194,25 @@ const DRIVE_START = 25; // own 25
 const KICK_ODDS = d => d <= 29 ? 0.96 : d <= 34 ? 0.92 : d <= 39 ? 0.86 : d <= 44 ? 0.78 : d <= 49 ? 0.70 : d <= 54 ? 0.55 : d <= 59 ? 0.40 : 0.12;
 
 function drawQuestion(list) { return list[Math.floor(Math.random() * list.length)]; }
+function pickN(list, n) {
+  const c = [...list];
+  for (let i = c.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [c[i], c[j]] = [c[j], c[i]];
+  }
+  return c.slice(0, n);
+}
 
 function newGame(team) {
   const f = arr => {
-    const filtered = team ? arr.filter(q => q.team === team || (q.tenures && q.tenures.some(t => t.team === team))) : arr;
+    const filtered = team ? arr.filter(q => q.team === team) : arr;
     return filtered.length ? filtered : arr;
   };
-  const qs = [
-    drawQuestion(f(pool.tp)), drawQuestion(f(pool.tp)),
-    drawQuestion(f(pool.tn)), drawQuestion(f(pool.tn)),
-    drawQuestion(f(pool.mt)),
-  ];
-  qs.sort(() => Math.random() - 0.5);
-  const g = { id: Math.random().toString(36).slice(2, 10), team, questions: qs, idx: 0, yards: 0, log: [], status: 'active' };
+  // mixed bag: 2-3 position questions + the rest number questions
+  const tpN = 2 + Math.floor(Math.random() * 2);
+  const qs = [...pickN(f(pool.tp), tpN), ...pickN(f(pool.tn), 5 - tpN)];
+  const order = qs.sort(() => Math.random() - 0.5);
+  const g = { id: Math.random().toString(36).slice(2, 10), team, questions: order, idx: 0, yards: 0, log: [], status: 'active' };
   GAMES.set(g.id, g);
   return g;
 }

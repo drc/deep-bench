@@ -6,16 +6,16 @@
 ![python](https://img.shields.io/badge/python-3.12+-yellow)
 
 Krillion-style NFL rarity trivia: every question has many correct answers, and
-**the rarer your answer, the more yards you gain**. Five questions per drive,
-then you line up for a field goal — great answers put you inside the 20, lazy
-ones leave you staring at a 62-yarder that probably won't make it.
+**the rarer your answer, the more yards you gain**. Five questions per drive —
+a mixed bag of team+position and team+number — then you line up for a field
+goal. Great answers put you inside the 20, lazy ones leave you staring at a
+62-yarder that probably won't make it.
 
 ## The Drive
 
-Five questions, one at a time: **two** team+position ("Name a QB who played for
-the Buccaneers"), **two** team+number ("Who wore #99 for the Bears"), and **one**
-multi-team ("He played for 3 NFL teams — which did he spend the *fewest*
-seasons with?").
+Five questions, one at a time: **team+position** ("Name a QB who played for
+the Buccaneers") and **team+number** ("Who wore #99 for the Bears") in a mixed
+bag — 2–3 position, 3–2 number per drive.
 
 Each answer is a play:
 
