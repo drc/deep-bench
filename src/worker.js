@@ -3,6 +3,7 @@
 // Persistence: D1 (players, games, answers, daily_picks, jev verdict cache).
 import dataset from '../public/dataset.json';
 import htmlSrc from '../public/index.html';
+import ogImage from '../public/og.jpg';
 import { createGame } from '../lib/game';
 import { verifyPlayerId, cookieFor } from './auth';
 
@@ -67,19 +68,29 @@ async function adjudicateFor(env) {
 async function handleStart(env, request) {
   const { playerId, setCookie } = await requirePlayer(env, request);
   const date = G.today();
+  const body = await request.json().catch(() => ({}));
+  const team = typeof body.team === 'string' && G.teams[body.team.toUpperCase()] ? body.team.toUpperCase() : null;
   const existing = await env.DB.prepare('SELECT state, points FROM games WHERE player_id = ? AND game_date = ?').bind(playerId, date).first();
   const headers = setCookie ? { 'Set-Cookie': setCookie } : {};
   if (existing) {
-    const r = recap(JSON.parse(existing.state));
+    const state = JSON.parse(existing.state);
+    // abandoned drives resume where you left off; only finished drives block a new one
+    if (state.status !== 'done') {
+      const view = G.view(state);
+      if (state.status === 'kick') view.fg = G.fgPreview(state);
+      return json({ ...view, date }, 200, headers);
+    }
+    const r = recap(state);
     return json({ alreadyPlayed: true, date, recap: r, points: existing.points }, 409, headers);
   }
-  const state = G.newState({ id: crypto.randomUUID(), team: null });
-  // freeze today's shared question set on first play of the day
+  const state = G.newState({ id: crypto.randomUUID(), team });
+  // daily snapshot record — the first drive's question set of the day
   await env.DB.prepare('INSERT OR IGNORE INTO daily_picks (game_date, qids, created_at) VALUES (?, ?, ?)')
     .bind(date, JSON.stringify(state.questions.map(q => q.id)), new Date().toISOString()).run();
   await env.DB.prepare('INSERT INTO games (player_id, game_date, status, yards, points, state) VALUES (?, ?, ?, 0, 0, ?)')
     .bind(playerId, date, 'active', JSON.stringify(state)).run();
-  return json({ view: G.view(state), date }, 200, headers);
+  // flat view at top level — same shape as the Node demo's /api/game/start
+  return json({ ...G.view(state), date }, 200, headers);
 }
 
 async function handleAnswer(env, request, body) {
@@ -187,8 +198,12 @@ export default {
       if (request.method === 'GET' && p === '/api/me') return await handleMe(env, request);
       if (request.method === 'GET' && p === '/api/feasibility') return await handleFeasibility(request);
       if (request.method === 'GET' && p === '/api/lookup') return handleLookup(request);
+      if (request.method === 'GET' && p === '/og.jpg') {
+        return new Response(ogImage, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' } });
+      }
       if (request.method === 'GET' && (p === '/' || !p.startsWith('/api/'))) {
-        const html = htmlSrc.replace('@@ENV@@', 'production');
+        // @@ORIGIN@@ keeps og:url / og:image absolute and correct on any host
+        const html = htmlSrc.replace('@@ENV@@', 'production').replaceAll('@@ORIGIN@@', url.origin);
         return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } });
       }
       return json({ error: 'not found' }, 404);

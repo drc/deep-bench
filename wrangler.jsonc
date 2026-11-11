@@ -6,15 +6,27 @@
   "compatibility_date": "2026-11-01",
   // index.html imported as a text module and served with @@ENV@@ => production
   "rules": [
-    { "type": "Text", "globs": ["**/*.html"], "fallthrough": true }
+    {
+      "type": "Text",
+      "globs": ["**/*.html"],
+      "fallthrough": true,
+    },
+    {
+      // social share card, served at /og.jpg
+      "type": "Data",
+      "globs": ["**/*.jpg"],
+      "fallthrough": true,
+    },
   ],
   // fill database_id after `npx wrangler d1 create deep-bench-db` (scripts/cf-setup.sh does this)
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "deep-bench-db",
-      "database_id": "REPLACE_ME"
-    }
+      "database_id": "a8488201-11be-465c-a48a-f2c21c8333ec",
+    },
   ],
-  "observability": { "enabled": true }
+  "observability": {
+    "enabled": true,
+  },
 }

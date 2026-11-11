@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Deep Bench — NFL Rarity Trivia</title>
+<!-- OpenGraph — iMessage link preview reads og:title/description/image; Discord sizes the embed from og:image:width/height -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Deep Bench">
+<meta property="og:title" content="Deep Bench — NFL Rarity Trivia">
+<meta property="og:description" content="One drive a day: five NFL rarity questions down the field, then kick the field goal. Household names gain inches — deep-bench answers score touchdowns.">
+<meta property="og:url" content="@@ORIGIN@@/">
+<meta property="og:image" content="@@ORIGIN@@/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:alt" content="Deep Bench — NFL rarity trivia. Who wore #58 for the Raiders?">
+<!-- Discord: colors the embed stripe (iMessage ignores this) -->
+<meta name="theme-color" content="#3ecf8e">
 <script>window.__ENV__='@@ENV@@';</script>
 <style>
 :root{
@@ -177,8 +190,6 @@ const MODE_LABEL = {tp:'Team + Position', tn:'Team + Number', mt:'Fewest Seasons
 const DEV = (window.__ENV__ || 'development') !== 'production';
 // dev-only tabs: hide in production, keep the Drive front and center
 document.querySelectorAll('nav button.dev').forEach(b => b.classList.toggle('hidden', !DEV));
-// team editions are a demo (Node) feature; the shared daily Worker drive is league-wide
-if (!DEV) document.getElementById('teamBtn').classList.add('hidden');
 const MODE_HINT = {tp:'Any player who played that position for that team, any era. Rarer = more yards.', tn:'Anyone who wore that number for that team, any era. Rarer = more yards.', mt:'You only get the number of teams — recall which teams he played for, and answer with the one he spent the FEWEST seasons on.'};
 const YARDAGE = {deep:14, rare:12, uncommon:9, common:6};
 
@@ -208,8 +219,23 @@ async function startDrive(){
   document.getElementById('driveLog').innerHTML='';
   document.getElementById('qArea').style.display='block';
   document.getElementById('answer').value='';
-  game = await fetch('/api/game/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team:curTeam})}).then(r=>r.json());
+  const r = await fetch('/api/game/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({team:curTeam})});
+  const j = await r.json();
   updateTeamButton({teams:ALL_TEAMS});
+  if (j.alreadyPlayed) {
+    // drive's final for today — show the recap instead of a broken board
+    const rc = j.recap || {};
+    game = { status: 'done', yards: rc.yards || 0, ballAt: 0, log: [] };
+    renderDrive();
+    document.getElementById('newDriveRow').style.display='none';
+    document.getElementById('shareRow').style.display='flex';
+    const el = document.getElementById('verdict');
+    el.style.display='block'; el.className='verdict ok';
+    el.innerHTML = `<div class="big">🏟️ Today's drive is final — ${rc.yards||0} yards.</div>
+      <div style="color:var(--dim);margin-top:4px">${rc.plays||''} ${rc.made==null?'':rc.made?'FG good — 3 pts.':'FG no good.'} Next drive: tomorrow.</div>`;
+    return;
+  }
+  game = j;
   renderDrive();
 }
 function renderDrive(){

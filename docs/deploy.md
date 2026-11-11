@@ -44,12 +44,14 @@ npx wrangler deploy
 
 - **Cookie identity**: first visit mints an HMAC-signed player cookie. All
   history keys off it (clearing cookies = new player).
+- **Team drives**: pick your team (defaults to the Bears) — questions scope to
+  that team's pool, falling back to league-wide where a pool is too thin.
 - **One drive per day**: `UNIQUE(player_id, game_date)` in D1 — starting a
   drive consumes the day; abandoned drives resume where you left off and
   unanswered plays score 0.
-- **Same questions for everyone**: the drive is league-wide (team editions are
-  a Node-demo feature for now). Each day's question set is frozen into the
-  `daily_picks` table on first play, so dataset updates never rewrite history.
+- **Same questions for everyone**: each day's first-play question set is
+  snapshotted into the `daily_picks` table, so dataset updates never rewrite
+  history.
 - **jev-router verdicts** cache in D1 (`verdicts` table) — each deep-cut
   adjudication is paid for once, globally.
 

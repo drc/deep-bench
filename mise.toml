@@ -37,6 +37,24 @@ run = "node server.js"
 description = "Boot the server and run the API smoke test"
 run = "bash scripts/smoke.sh"
 
+[tasks.cf-setup]
+description = "First-time Cloudflare setup: D1, secrets, first deploy"
+dir = "{{config_root}}"
+run = "bash scripts/cf-setup.sh"
+
+[tasks.deploy]
+description = "Ship to Cloudflare Workers: fresh dataset if raw CSVs present, remote D1 migrations, deploy"
+dir = "{{config_root}}"
+run = """
+if [ -d data ]; then
+  mise run build
+else
+  echo "no raw data/ — deploying the committed public/dataset.json"
+fi
+npx wrangler d1 migrations apply deep-bench-db --remote
+npx wrangler deploy
+"""
+
 [tasks.tunnel]
 description = "Expose on the tailnet at https://oracle.tail72fd3b.ts.net"
 run = "tailscale serve --bg --http=443 4310 --http=80 4310"

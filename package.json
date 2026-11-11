@@ -15,7 +15,10 @@
     "wrangler": "^4.158.0"
   },
   "allowScripts": {
+  "allowScripts": {
     "esbuild": true,
-    "workerd": true
+    "workerd": true,
+    "fsevents": true
+  }
   }
 }
